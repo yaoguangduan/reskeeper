@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/yaoguangduan/reskeeper/pbgen"
 	"google.golang.org/protobuf/proto"
 	"os"
-	"reskeeper/pbgen"
 	"testing"
 )
 

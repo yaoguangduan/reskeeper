@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/yaoguangduan/reskeeper/internal"
 	_ "google.golang.org/protobuf/reflect/protodesc"
 	"os"
-	"reskeeper/internal"
 )
 
 func main() {

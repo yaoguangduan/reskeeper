@@ -1,10 +1,10 @@
 package internal
 
 import (
-	"reskeeper/internal/excelx"
-	"reskeeper/internal/protox"
-	"reskeeper/internal/writex"
-	"reskeeper/res_toml"
+	"github.com/yaoguangduan/reskeeper/internal/excelx"
+	"github.com/yaoguangduan/reskeeper/internal/protox"
+	"github.com/yaoguangduan/reskeeper/internal/writex"
+	"github.com/yaoguangduan/reskeeper/res_toml"
 )
 
 func Gen(tml string) {

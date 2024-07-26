@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"github.com/samber/lo"
 	"github.com/xuri/excelize/v2"
+	"github.com/yaoguangduan/reskeeper/internal/excelx/styles"
+	"github.com/yaoguangduan/reskeeper/internal/protox"
+	"github.com/yaoguangduan/reskeeper/internal/tools"
+	"github.com/yaoguangduan/reskeeper/res_toml"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"os"
 	"path/filepath"
-	"reskeeper/internal/excelx/styles"
-	"reskeeper/internal/protox"
-	"reskeeper/internal/tools"
-	"reskeeper/res_toml"
 )
 
 func GenExcelFiles(config res_toml.Config, files protox.ProtoFiles) {

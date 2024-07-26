@@ -1,7 +1,7 @@
 // options.proto
 syntax = "proto3";
 
-option go_package="../pbgen";
+option go_package="github.com/yaoguangduan/reskeeper";
 import "google/protobuf/descriptor.proto";
 
 // 定义多个自定义消息选项
