@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+option go_package = "../pbgen";
+
+enum ZooLevel {
+  Green = 0;
+  Blue = 1;
+  Orange = 2;
+  Red = 3;
+}
+
+message Assistant {
+  optional string name = 1;
+  optional int32 level = 2;
+  optional string direction = 3;
+}
+
+message Manager {
+  optional int32 age = 1;
+  optional string name = 2;
+  optional AddressDetail addr = 3;
+  repeated Assistant assistants = 4;
+}
+
+message AddressDetail {
+  optional string name = 1;
+  optional double x = 2;
+  optional double y = 3;
+}
+message Institute {
+  optional string name = 1;
+  optional int32 years = 2;
+  optional bool normal = 3;
+}
+message Government {
+  optional string id = 1;
+  optional uint32 level = 2;
+}
+
+message Paper {
+  optional int32  id = 1;
+  optional string desc = 2;
+}
+
+message BorrowInfo {
+  optional string name = 1;
+  optional uint32 count = 2;
+  optional string reason = 3;
+  optional bool out = 4;
+  repeated Paper paper = 5;
+}
+enum FoodType{
+  Water =0;
+  Vegetable = 1;
+  Carbon = 2;
+}
+message Food {
+  optional string name = 1;
+  optional FoodType ft = 2;
+  optional float weight = 3;
+}
+message Animal {
+  optional string name = 1;
+  optional string detail = 2;
+  optional uint64 count = 3;
+  repeated Food foods = 4;
+}
+message Zoo {
+  optional int32 id = 1;//test //maka
+  optional string desc = 2;
+  optional Manager manager = 3;
+  oneof belong {
+    Institute institute = 4;
+    Government government = 5;
+    string other = 6;
+  }
+  map<uint64,BorrowInfo> borrows = 7;
+  repeated Animal animals = 8;
+  map<int32,string> logs = 9;
+  optional ZooLevel level = 10;
+  repeated int32 openDays = 11;
+
+}
+
+message ZooTable {
+  repeated Zoo zoos = 1;
+}

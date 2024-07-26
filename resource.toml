@@ -1,0 +1,14 @@
+proto_path="pb" #proto文件目录
+excel_path="excel" #excel所在目录
+out_path="data" #excel转proto二进制的输出目录
+out_formats=["bin","json","text"] # 输出的格式
+compat_message_with_max_fields=3 #如果一个message字段数量小于等于compat_message_with_max_fields，则这个message放在一个col列
+#tables --一个excel sheet页，也是一个message list
+
+[[tables]]
+excel="测试汇总.xlsx" #excel文件路径
+sheet_name="动物园" #sheet_name --sheet页名称
+proto="demo.proto" #proto --Message所在proto的名称
+table_name="ZooTable"
+message_name="Zoo" #message --消息名称
+out_formats=["bin","json","text"] # 输出的格式，不配置则复用全局配置

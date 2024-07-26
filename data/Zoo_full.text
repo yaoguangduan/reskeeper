@@ -1,0 +1,525 @@
+zoos:  {
+  id:  111
+  desc:  "light zoo"
+  manager:  {
+    age:  22
+    name:  "john"
+    addr:  {
+      name:  "bj"
+      x:  234.2
+      y:  345.2
+    }
+    assistants:  {
+      name:  "huhua"
+      level:  8
+      direction:  "health"
+    }
+    assistants:  {
+      name:  "liuyi"
+      level:  9
+      direction:  "food"
+    }
+  }
+  institute:  {
+    name:  "jiJinHui"
+    years:  6
+    normal:  true
+  }
+  borrows:  {
+    key:  111
+    value:  {
+      name:  "bird"
+      count:  20
+      reason:  "research"
+      out:  false
+      paper:  {
+        id:  6454221
+        desc:  "idcard"
+      }
+      paper:  {
+        id:  34243123
+        desc:  "signupinfo"
+      }
+      paper:  {
+        id:  98762318
+        desc:  "managerid"
+      }
+      paper:  {
+        id:  8762
+        desc:  "manager sign"
+      }
+    }
+  }
+  animals:  {
+    name:  "cat"
+    detail:  "cat group"
+    count:  231
+    foods:  {
+      name:  "Balala"
+      ft:  Water
+      weight:  23.58
+    }
+    foods:  {
+      name:  "RouRou"
+      ft:  Carbon
+      weight:  88.12
+    }
+    foods:  {
+      name:  "CCR"
+      ft:  Vegetable
+      weight:  43.11
+    }
+  }
+  animals:  {
+    name:  "dog"
+    detail:  "zhonghua"
+    count:  89
+    foods:  {
+      name:  "Balala"
+      ft:  Water
+      weight:  13.58
+    }
+    foods:  {
+      name:  "RouRou"
+      ft:  Carbon
+      weight:  58.12
+    }
+    foods:  {
+      name:  "CCR"
+      ft:  Vegetable
+      weight:  12.21
+    }
+  }
+  logs:  {
+    key:  265602863
+    value:  "assistant do all"
+  }
+  logs:  {
+    key:  1535466951
+    value:  "manager not leave"
+  }
+  level:  Orange
+  openDays:  1
+  openDays:  4
+  openDays:  7
+}
+zoos:  {
+  id:  222
+  desc:  "light zoo"
+  manager:  {
+    age:  22
+    name:  "john"
+    addr:  {
+      name:  "bj"
+      x:  234.2
+      y:  345.2
+    }
+    assistants:  {
+      name:  "huhua"
+      level:  8
+      direction:  "health"
+    }
+    assistants:  {
+      name:  "liuyi"
+      level:  9
+      direction:  "food"
+    }
+  }
+  institute:  {
+    name:  "jiJinHui"
+    years:  6
+    normal:  true
+  }
+  borrows:  {
+    key:  222
+    value:  {
+      name:  "bird"
+      count:  20
+      reason:  "research"
+      out:  false
+      paper:  {
+        id:  6454221
+        desc:  "idcard"
+      }
+      paper:  {
+        id:  34243123
+        desc:  "signupinfo"
+      }
+      paper:  {
+        id:  98762318
+        desc:  "managerid"
+      }
+      paper:  {
+        id:  8762
+        desc:  "manager sign"
+      }
+    }
+  }
+  animals:  {
+    name:  "cat"
+    detail:  "cat group"
+    count:  231
+    foods:  {
+      name:  "Balala"
+      ft:  Water
+      weight:  23.58
+    }
+    foods:  {
+      name:  "RouRou"
+      ft:  Carbon
+      weight:  88.12
+    }
+    foods:  {
+      name:  "CCR"
+      ft:  Vegetable
+      weight:  43.11
+    }
+  }
+  animals:  {
+    name:  "dog"
+    detail:  "zhonghua"
+    count:  89
+    foods:  {
+      name:  "Balala"
+      ft:  Water
+      weight:  13.58
+    }
+    foods:  {
+      name:  "RouRou"
+      ft:  Carbon
+      weight:  58.12
+    }
+    foods:  {
+      name:  "CCR"
+      ft:  Vegetable
+      weight:  12.21
+    }
+  }
+  logs:  {
+    key:  265602863
+    value:  "assistant do all"
+  }
+  logs:  {
+    key:  1535466951
+    value:  "manager not leave"
+  }
+  level:  Orange
+  openDays:  1
+  openDays:  4
+  openDays:  7
+}
+zoos:  {
+  id:  333
+  desc:  "light zoo"
+  manager:  {
+    age:  22
+    name:  "john"
+    addr:  {
+      name:  "bj"
+      x:  234.2
+      y:  345.2
+    }
+    assistants:  {
+      name:  "huhua"
+      level:  8
+      direction:  "health"
+    }
+    assistants:  {
+      name:  "liuyi"
+      level:  9
+      direction:  "food"
+    }
+  }
+  institute:  {
+    name:  "jiJinHui"
+    years:  6
+    normal:  true
+  }
+  borrows:  {
+    key:  333
+    value:  {
+      name:  "bird"
+      count:  20
+      reason:  "research"
+      out:  false
+      paper:  {
+        id:  6454221
+        desc:  "idcard"
+      }
+      paper:  {
+        id:  34243123
+        desc:  "signupinfo"
+      }
+      paper:  {
+        id:  98762318
+        desc:  "managerid"
+      }
+      paper:  {
+        id:  8762
+        desc:  "manager sign"
+      }
+    }
+  }
+  animals:  {
+    name:  "cat"
+    detail:  "cat group"
+    count:  231
+    foods:  {
+      name:  "Balala"
+      ft:  Water
+      weight:  23.58
+    }
+    foods:  {
+      name:  "RouRou"
+      ft:  Carbon
+      weight:  88.12
+    }
+    foods:  {
+      name:  "CCR"
+      ft:  Vegetable
+      weight:  43.11
+    }
+  }
+  animals:  {
+    name:  "dog"
+    detail:  "zhonghua"
+    count:  89
+    foods:  {
+      name:  "Balala"
+      ft:  Water
+      weight:  13.58
+    }
+    foods:  {
+      name:  "RouRou"
+      ft:  Carbon
+      weight:  58.12
+    }
+    foods:  {
+      name:  "CCR"
+      ft:  Vegetable
+      weight:  12.21
+    }
+  }
+  logs:  {
+    key:  265602863
+    value:  "assistant do all"
+  }
+  logs:  {
+    key:  1535466951
+    value:  "manager not leave"
+  }
+  level:  Orange
+  openDays:  1
+  openDays:  4
+  openDays:  7
+}
+zoos:  {
+  id:  444
+  desc:  "light zoo"
+  manager:  {
+    age:  22
+    name:  "john"
+    addr:  {
+      name:  "bj"
+      x:  234.2
+      y:  345.2
+    }
+    assistants:  {
+      name:  "huhua"
+      level:  8
+      direction:  "health"
+    }
+    assistants:  {
+      name:  "liuyi"
+      level:  9
+      direction:  "food"
+    }
+  }
+  institute:  {
+    name:  "jiJinHui"
+    years:  6
+    normal:  true
+  }
+  borrows:  {
+    key:  444
+    value:  {
+      name:  "bird"
+      count:  20
+      reason:  "research"
+      out:  false
+      paper:  {
+        id:  6454221
+        desc:  "idcard"
+      }
+      paper:  {
+        id:  34243123
+        desc:  "signupinfo"
+      }
+      paper:  {
+        id:  98762318
+        desc:  "managerid"
+      }
+      paper:  {
+        id:  8762
+        desc:  "manager sign"
+      }
+    }
+  }
+  animals:  {
+    name:  "cat"
+    detail:  "cat group"
+    count:  231
+    foods:  {
+      name:  "Balala"
+      ft:  Water
+      weight:  23.58
+    }
+    foods:  {
+      name:  "RouRou"
+      ft:  Carbon
+      weight:  88.12
+    }
+    foods:  {
+      name:  "CCR"
+      ft:  Vegetable
+      weight:  43.11
+    }
+  }
+  animals:  {
+    name:  "dog"
+    detail:  "zhonghua"
+    count:  89
+    foods:  {
+      name:  "Balala"
+      ft:  Water
+      weight:  13.58
+    }
+    foods:  {
+      name:  "RouRou"
+      ft:  Carbon
+      weight:  58.12
+    }
+    foods:  {
+      name:  "CCR"
+      ft:  Vegetable
+      weight:  12.21
+    }
+  }
+  logs:  {
+    key:  265602863
+    value:  "assistant do all"
+  }
+  logs:  {
+    key:  1535466951
+    value:  "manager not leave"
+  }
+  level:  Orange
+  openDays:  1
+  openDays:  4
+  openDays:  7
+}
+zoos:  {
+  id:  555
+  desc:  "light zoo"
+  manager:  {
+    age:  22
+    name:  "john"
+    addr:  {
+      name:  "bj"
+      x:  234.2
+      y:  345.2
+    }
+    assistants:  {
+      name:  "huhua"
+      level:  8
+      direction:  "health"
+    }
+    assistants:  {
+      name:  "liuyi"
+      level:  9
+      direction:  "food"
+    }
+  }
+  institute:  {
+    name:  "jiJinHui"
+    years:  6
+    normal:  true
+  }
+  borrows:  {
+    key:  555
+    value:  {
+      name:  "bird"
+      count:  20
+      reason:  "research"
+      out:  false
+      paper:  {
+        id:  6454221
+        desc:  "idcard"
+      }
+      paper:  {
+        id:  34243123
+        desc:  "signupinfo"
+      }
+      paper:  {
+        id:  98762318
+        desc:  "managerid"
+      }
+      paper:  {
+        id:  8762
+        desc:  "manager sign"
+      }
+    }
+  }
+  animals:  {
+    name:  "cat"
+    detail:  "cat group"
+    count:  231
+    foods:  {
+      name:  "Balala"
+      ft:  Water
+      weight:  23.58
+    }
+    foods:  {
+      name:  "RouRou"
+      ft:  Carbon
+      weight:  88.12
+    }
+    foods:  {
+      name:  "CCR"
+      ft:  Vegetable
+      weight:  43.11
+    }
+  }
+  animals:  {
+    name:  "dog"
+    detail:  "zhonghua"
+    count:  89
+    foods:  {
+      name:  "Balala"
+      ft:  Water
+      weight:  13.58
+    }
+    foods:  {
+      name:  "RouRou"
+      ft:  Carbon
+      weight:  58.12
+    }
+    foods:  {
+      name:  "CCR"
+      ft:  Vegetable
+      weight:  12.21
+    }
+  }
+  logs:  {
+    key:  265602863
+    value:  "assistant do all"
+  }
+  logs:  {
+    key:  1535466951
+    value:  "manager not leave"
+  }
+  level:  Orange
+  openDays:  1
+  openDays:  4
+  openDays:  7
+}
