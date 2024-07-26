@@ -1,11 +1,10 @@
-// options.proto
 syntax = "proto3";
 
-option go_package="github.com/yaoguangduan/reskeeper";
+option go_package="github.com/yaoguangduan/reskeeper/resproto";
 import "google/protobuf/descriptor.proto";
 
-// 定义多个自定义消息选项
+
 extend google.protobuf.MessageOptions {
-  string my_custom_option_1 = 50001;
-  int32 my_custom_option_2 = 50002;
+  string excel_and_sheet_name = 50001;
+  string key = 50002;
 }

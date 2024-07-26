@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 option go_package = "../pbgen";
+import "resource.options.proto";
 
 enum ZooLevel {
   Green = 0;
@@ -83,5 +84,6 @@ message Zoo {
 }
 
 message ZooTable {
+  option (excel_and_sheet_name)="测试样例.xlsx#动物园列表";
   repeated Zoo zoos = 1;
 }
