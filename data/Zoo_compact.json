@@ -1,97 +1,11 @@
 {
-  "zoos":  [
+  "zoos": [
     {
-      "id":  111,
-      "desc":  "beijing zoo",
-      "manager":  {
-        "age":  23,
-        "name":  "alen",
-        "addr":  {
-          "name":  "bj nanmen",
-          "x":  2934.231,
-          "y":  983.21
-        },
-        "assistants":  [
-          {
-            "name":  "jone",
-            "level":  8,
-            "direction":  "health"
-          },
-          {
-            "name":  "kona",
-            "level":  6,
-            "direction":  "food"
-          }
-        ]
+      "id": 111,
+      "manager": {
+        "name": "alen"
       },
-      "government":  {
-        "id":  "BJG",
-        "level":  99
-      },
-      "borrows":  {
-        "20241012":  {
-          "name":  "cat",
-          "count":  22,
-          "reason":  "for show",
-          "out":  true,
-          "paper":  [
-            {
-              "id":  88888,
-              "desc":  "IDCARD"
-            },
-            {
-              "id":  99999,
-              "desc":  "SIGNUP"
-            }
-          ]
-        }
-      },
-      "animals":  [
-        {
-          "name":  "bird",
-          "detail":  "super bird island",
-          "count":  "821",
-          "foods":  [
-            {
-              "name":  "MagicDrink",
-              "ft":  "Water",
-              "weight":  12
-            },
-            {
-              "name":  "DrugW",
-              "ft":  "Water",
-              "weight":  1
-            }
-          ]
-        },
-        {
-          "name":  "cat",
-          "detail":  "cat gods",
-          "count":  "219",
-          "foods":  [
-            {
-              "name":  "MOSHAN",
-              "ft":  "Vegetable",
-              "weight":  10
-            },
-            {
-              "name":  "DrugW",
-              "ft":  "Water",
-              "weight":  2
-            }
-          ]
-        }
-      ],
-      "logs":  {
-        "9782321":  "this is a good day",
-        "96821371":  "manager rest rest"
-      },
-      "level":  "Orange",
-      "openDays":  [
-        1,
-        3,
-        4
-      ]
+      "level": "Orange"
     }
   ]
 }

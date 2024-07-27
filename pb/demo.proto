@@ -17,6 +17,7 @@ message Assistant {
 }
 
 message Manager {
+  option (res_msg_opt) = {  tag_ignore_fields:["compact:1,3-1000"], msg_key:"id" };
   optional int32 age = 1;
   optional string name = 2;
   optional AddressDetail addr = 3;
@@ -69,10 +70,7 @@ message Animal {
   repeated Food foods = 4;
 }
 message Zoo {
-  option (res_msg_opt) = {
-    tag_ignore_fields:["compact:2,4-9,11"],
-    msg_key:"id"
-  };
+  option (res_msg_opt) = {  tag_ignore_fields:["compact:2,4-9,11"], msg_key:"id" };
   optional int32 id = 1 [(res_validate)={no_null:true}];
   optional string desc = 2;
   optional Manager manager = 3;

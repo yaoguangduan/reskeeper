@@ -77,7 +77,7 @@ func generateOneTable(tag string, data SheetTable, tableMsgDesc protoreflect.Mes
 		if needCreateNewMsg(msgDesc, data.Heads, line) { //一条新消息
 			msg = msgList.AppendMutable().Message()
 		}
-		pressOneLineIntoMsg(msg, idx, data, msgDesc)
+		pressOneLineIntoMsg(tag, msg, idx, data, msgDesc)
 	}
 	fmt.Println(protojson.Format(tableMsg))
 	var formats = table.Belong.Opt.GetMarshalFormats()
@@ -116,24 +116,26 @@ func needCreateNewMsg(desc protoreflect.MessageDescriptor, nameColMap map[string
 	return keyValue != ""
 }
 
-func pressOneLineIntoMsg(msg protoreflect.Message, lineIndex int, data SheetTable, desc protoreflect.MessageDescriptor) {
+func pressOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, data SheetTable, desc protoreflect.MessageDescriptor) {
+	msgOpt := protox.GetMsgOptOrDefault(desc)
 	noRecurCols := lo.PickBy(data.Heads, func(key string, value ColHead) bool {
 		return !strings.Contains(key, ".")
 	})
 	line := data.Data[lineIndex]
 	for _, colHead := range noRecurCols {
 		value := line[colHead.Col]
-		if value == "" {
+		field := desc.Fields().ByName(protoreflect.Name(colHead.Name))
+		if value == "" || protox.IgnoreCurField(tag, msgOpt, field) {
 			continue
 		}
-		field := desc.Fields().ByName(protoreflect.Name(colHead.Name))
+
 		if field.IsList() {
 			list := msg.Mutable(field).List()
 			for _, val := range strings.Split(value, "|") {
-				list.Append(getFieldValueFromStr(field, val, lineIndex, colHead))
+				list.Append(getFieldValueFromStr(tag, field, val, colHead))
 			}
 		} else {
-			msg.Set(field, getFieldValueFromStr(field, value, lineIndex, colHead))
+			msg.Set(field, getFieldValueFromStr(tag, field, value, colHead))
 		}
 	}
 	commonPrefixMap := make(map[string]map[string]ColHead)
@@ -158,7 +160,7 @@ func pressOneLineIntoMsg(msg protoreflect.Message, lineIndex int, data SheetTabl
 				break
 			}
 		}
-		if !hasValue {
+		if !hasValue || protox.IgnoreCurField(tag, msgOpt, field) {
 			continue
 		}
 		if field.IsMap() {
@@ -169,26 +171,26 @@ func pressOneLineIntoMsg(msg protoreflect.Message, lineIndex int, data SheetTabl
 			}
 			delete(ncm, "mapKey")
 			mapValDesc := field.MapValue()
-			keyVal := protoreflect.MapKey(getFieldValueFromStr(field.MapKey(), keyStr, lineIndex, ncm["mapKey"]))
+			keyVal := protoreflect.MapKey(getFieldValueFromStr(tag, field.MapKey(), keyStr, ncm["mapKey"]))
 			if mapValDesc.Kind() == protoreflect.MessageKind {
 				var valVal = mapField.Mutable(keyVal)
-				pressOneLineIntoMsg(valVal.Message(), lineIndex, SheetTable{Heads: ncm, Data: data.Data}, mapValDesc.Message())
+				pressOneLineIntoMsg(tag, valVal.Message(), lineIndex, SheetTable{Heads: ncm, Data: data.Data}, mapValDesc.Message())
 			} else {
-				valVal := getFieldValueFromStr(mapValDesc, line[ncm["mapVal"].Col], lineIndex, ncm["mapVal"])
+				valVal := getFieldValueFromStr(tag, mapValDesc, line[ncm["mapVal"].Col], ncm["mapVal"])
 				mapField.Set(keyVal, valVal)
 			}
 		} else if field.IsList() {
 			list := msg.Mutable(field).List()
 			if needCreateNewMsg(field.Message(), ncm, line) {
 				var fieldMsg = list.AppendMutable().Message()
-				pressOneLineIntoMsg(fieldMsg, lineIndex, SheetTable{Heads: ncm, Data: data.Data}, field.Message())
+				pressOneLineIntoMsg(tag, fieldMsg, lineIndex, SheetTable{Heads: ncm, Data: data.Data}, field.Message())
 			} else {
 				var fieldMsg = list.Get(list.Len() - 1).Message()
-				pressOneLineIntoMsg(fieldMsg, lineIndex, SheetTable{Heads: ncm, Data: data.Data}, field.Message())
+				pressOneLineIntoMsg(tag, fieldMsg, lineIndex, SheetTable{Heads: ncm, Data: data.Data}, field.Message())
 			}
 		} else {
 			fieldMsg := msg.Mutable(field).Message()
-			pressOneLineIntoMsg(fieldMsg, lineIndex, SheetTable{Heads: ncm, Data: data.Data}, field.Message())
+			pressOneLineIntoMsg(tag, fieldMsg, lineIndex, SheetTable{Heads: ncm, Data: data.Data}, field.Message())
 		}
 	}
 }
@@ -203,7 +205,7 @@ func getPrevNoEmptyVal(lines [][]string, line int, col int) string {
 	return ""
 }
 
-func getFieldValueFromStr(field protoreflect.FieldDescriptor, cell string, lineIndex int, head ColHead) protoreflect.Value {
+func getFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell string, head ColHead) protoreflect.Value {
 	var value protoreflect.Value
 	switch field.Kind() {
 	case protoreflect.StringKind:
@@ -238,7 +240,7 @@ func getFieldValueFromStr(field protoreflect.FieldDescriptor, cell string, lineI
 		for i, f := range fieldHead {
 			nameColMap[f] = ColHead{Name: f, Col: i, Additional: ""}
 		}
-		pressOneLineIntoMsg(tmp, 0, SheetTable{Heads: nameColMap, Data: [][]string{line}}, fmd)
+		pressOneLineIntoMsg(tag, tmp, 0, SheetTable{Heads: nameColMap, Data: [][]string{line}}, fmd)
 		value = protoreflect.ValueOfMessage(tmp)
 	}
 	return value
