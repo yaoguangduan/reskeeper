@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+import "resource.options.proto";
+import "demo.proto";
+
+option go_package = "../pbgen";
+option (res_file_opt) = {
+  excel_path:"../excel";
+  marshal_path:"../data"
+  marshal_formats:[Bin,Text,Json]
+};
+
+
+message ZooTable {
+  option (res_table_opt)={
+    excel_and_sheet_name:"测试样例.xlsx#动物园列表",
+    marshal_prefix:"ZooTable_",
+    marshal_tags:["full","compact"]
+  };
+  repeated Zoo zoos = 1;
+}

@@ -42,6 +42,17 @@ func FontAlignCenter(f *excelize.File) int {
 	return style
 }
 
+func FontBold(f *excelize.File) int {
+	style, err := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true},
+	})
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
+	return style
+}
+
 func AdjustColumnWidth(f *excelize.File, sheetName string, colCnt int) {
 	maxWidth := 8.5
 	rows, err := f.GetRows(sheetName)
@@ -49,16 +60,12 @@ func AdjustColumnWidth(f *excelize.File, sheetName string, colCnt int) {
 		fmt.Println(err)
 		return
 	}
-	for i := 2; i < colCnt; i++ {
-		if i <= len(rows[1]) {
-			cellValue := rows[1][i-1]
-			cellWidth := calculateWidth(cellValue)
-			if cellWidth > maxWidth {
-				maxWidth = cellWidth
-			}
+	for i := 1; i < colCnt+1; i++ {
+		cellValue := rows[0][i-1]
+		cellWidth := calculateWidth(cellValue)
+		if cellWidth > maxWidth {
+			maxWidth = cellWidth
 		}
-
-		// 设置列宽
 		f.SetColWidth(sheetName, lo.Must(excelize.ColumnNumberToName(i)), lo.Must(excelize.ColumnNumberToName(i)), maxWidth)
 	}
 }

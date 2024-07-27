@@ -4,17 +4,23 @@ import (
 	"fmt"
 	"github.com/samber/lo"
 	"github.com/xuri/excelize/v2"
+	"github.com/yaoguangduan/reskeeper/internal/configs"
 	"github.com/yaoguangduan/reskeeper/internal/excelx/styles"
 	"github.com/yaoguangduan/reskeeper/internal/protox"
-	"github.com/yaoguangduan/reskeeper/internal/tools"
-	"github.com/yaoguangduan/reskeeper/res_toml"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
-func GenExcelFiles(config res_toml.Config, files protox.ProtoFiles) {
-	excelPath := config.ExcelPath
+func GenExcelFiles(configs []configs.ResProtoFileConfig, files protox.ProtoFiles) {
+	for _, config := range configs {
+		genByOneConfigProto(config, files)
+	}
+}
+
+func genByOneConfigProto(config configs.ResProtoFileConfig, files protox.ProtoFiles) {
+	excelPath := config.Opt.GetExcelPath()
 	_, err := os.Stat(excelPath)
 	if err != nil && os.IsNotExist(err) {
 		panic(fmt.Sprintf("table path %s does not exist", excelPath))
@@ -22,32 +28,32 @@ func GenExcelFiles(config res_toml.Config, files protox.ProtoFiles) {
 	if err != nil {
 		panic(err)
 	}
-	excelTableMap := make(map[string][]res_toml.Table)
+	excelTableMap := make(map[string][]configs.ResTableConfig)
 	for _, table := range config.Tables {
-		_, exist := excelTableMap[table.Excel]
+		_, exist := excelTableMap[table.GetExcelName()]
 		if !exist {
-			excelTableMap[table.Excel] = []res_toml.Table{}
+			excelTableMap[table.GetExcelName()] = []configs.ResTableConfig{}
 		}
-		excelTableMap[table.Excel] = append(excelTableMap[table.Excel], table)
+		excelTableMap[table.GetExcelName()] = append(excelTableMap[table.GetExcelName()], table)
 	}
-	for excel := range excelTableMap {
-		fp := filepath.Join(excelPath, excel)
+	for excelName, tableConfigs := range excelTableMap {
+		fp := filepath.Join(excelPath, excelName)
 		_, err := os.Stat(fp)
 		if err != nil && !os.IsNotExist(err) {
 			panic(fmt.Sprintf("table file %s state err", fp))
 		}
 		if err != nil {
 			//文件不存在
-			newExcelWithConfig(excel, excelTableMap[excel], config, files)
+			newExcelWithConfig(excelName, tableConfigs, config, files)
 		} else {
 			//文件存在
-			adjustExcelWithConfig(excel, excelTableMap[excel], config, files)
+			adjustExcelWithConfig(excelName, tableConfigs, config, files)
 		}
 	}
 }
 
-func adjustExcelWithConfig(excel string, tables []res_toml.Table, config res_toml.Config, files protox.ProtoFiles) {
-	file, err := excelize.OpenFile(filepath.Join(config.ExcelPath, excel))
+func adjustExcelWithConfig(excel string, tables []configs.ResTableConfig, config configs.ResProtoFileConfig, files protox.ProtoFiles) {
+	file, err := excelize.OpenFile(filepath.Join(config.Opt.GetExcelPath(), excel))
 	if err != nil {
 		panic(err)
 	}
@@ -55,20 +61,18 @@ func adjustExcelWithConfig(excel string, tables []res_toml.Table, config res_tom
 		lo.Must0(file.Close())
 	}()
 	for _, table := range tables {
-		var index = lo.Must(file.GetSheetIndex(table.SheetName))
+		var index = lo.Must(file.GetSheetIndex(table.GetSheetName()))
 		if index == -1 {
-			index = lo.Must(file.GetSheetIndex("#" + table.SheetName))
+			index = lo.Must(file.GetSheetIndex("#" + table.GetSheetName()))
 		}
 		if index == -1 {
 			createTableSheetOnExcel(file, table, files, config)
-		} else {
-			refreshTableSheetComment(file, table)
 		}
 	}
 }
 
-func newExcelWithConfig(excel string, tables []res_toml.Table, config res_toml.Config, files protox.ProtoFiles) {
-	fp := filepath.Join(config.ExcelPath, excel)
+func newExcelWithConfig(excel string, tables []configs.ResTableConfig, config configs.ResProtoFileConfig, files protox.ProtoFiles) {
+	fp := filepath.Join(config.Opt.GetExcelPath(), excel)
 	excelFile := excelize.NewFile()
 
 	defer func() {
@@ -82,51 +86,23 @@ func newExcelWithConfig(excel string, tables []res_toml.Table, config res_toml.C
 	}
 }
 
-func createTableSheetOnExcel(excelFile *excelize.File, table res_toml.Table, files protox.ProtoFiles, config res_toml.Config) {
-	_, err := excelFile.NewSheet(table.SheetName)
+func createTableSheetOnExcel(excelFile *excelize.File, table configs.ResTableConfig, files protox.ProtoFiles, config configs.ResProtoFileConfig) {
+	_, err := excelFile.NewSheet(table.GetSheetName())
 	if err != nil {
 		panic(err)
 	}
 	msgD := files.GetMessage(table.MessageName)
 
-	refreshTableSheetComment(excelFile, table)
 	fullFieldFlat := make([]interface{}, 0)
-	fullFieldFlat = flatFieldName(fullFieldFlat, msgD, "", config)
-	lo.Must0(excelFile.SetSheetRow(table.SheetName, "B2", &fullFieldFlat))
-	lo.Must0(excelFile.SetCellStr(table.SheetName, "A2", "$head:full"))
+	fullFieldFlat = flatFieldName(fullFieldFlat, msgD, "")
 
-	lo.Must0(excelFile.SetRowStyle(table.SheetName, 2, 65535, styles.FontAlignCenter(excelFile)))
-	lo.Must0(excelFile.SetCellStyle(table.SheetName, "A2", "A3", styles.FontKeywords(excelFile)))
-
-	styles.AdjustColumnWidth(excelFile, table.SheetName, len(fullFieldFlat)+1)
+	lo.Must0(excelFile.SetSheetRow(table.GetSheetName(), "A1", &fullFieldFlat))
+	lo.Must0(excelFile.SetRowStyle(table.GetSheetName(), 1, 65535, styles.FontAlignCenter(excelFile)))
+	lo.Must0(excelFile.SetCellStyle(table.GetSheetName(), "A1", fmt.Sprintf("%s1", lo.Must(excelize.ColumnNumberToName(len(fullFieldFlat)))), styles.FontBold(excelFile)))
+	styles.AdjustColumnWidth(excelFile, table.GetSheetName(), len(fullFieldFlat))
 }
 
-func refreshTableSheetComment(excelFile *excelize.File, table res_toml.Table) {
-	fw := tools.NewFileWriter()
-	fw.PL("the first line and first column is for control usage")
-	fw.PL("the line or column will be ignore if it's first cell value start with #")
-	fw.PL("cell value usage for generate if the cell in first line or column and start with $:")
-	fw.PL("$head is the message's fields def and generate name suffix")
-	fw.PLF("protoName:%s", table.Proto)
-	fw.PLF("tableName:%s", table.TableName)
-	fw.PLF("messageMame:%s", table.MessageName)
-	lo.Must0(excelFile.SetCellStr(table.SheetName, "A1", fw.String()))
-	// 方法1：自动换行
-	style, err := excelFile.NewStyle(&excelize.Style{
-		Alignment: &excelize.Alignment{WrapText: true},
-		Font:      &excelize.Font{Italic: true},
-	})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	lo.Must(excelFile.GetStyle(lo.Must(excelFile.GetCellStyle(table.SheetName, "A1"))))
-	rh := lo.Must(excelFile.GetRowHeight(table.SheetName, 1))
-	lo.Must0(excelFile.SetCellStyle(table.SheetName, "A1", "A1", style))
-	lo.Must0(excelFile.SetRowHeight(table.SheetName, 1, rh))
-}
-
-func flatFieldName(fullFieldFlat []interface{}, msgD protoreflect.MessageDescriptor, prefix string, config res_toml.Config) []interface{} {
+func flatFieldName(fullFieldFlat []interface{}, msgD protoreflect.MessageDescriptor, prefix string) []interface{} {
 	for i := 0; i < msgD.Fields().Len(); i++ {
 		f := msgD.Fields().Get(i)
 		if f.Kind() == protoreflect.MessageKind {
@@ -134,24 +110,28 @@ func flatFieldName(fullFieldFlat []interface{}, msgD protoreflect.MessageDescrip
 				fullFieldFlat = append(fullFieldFlat, string(f.Name())+".mapKey")
 				mapValDesc := f.MapValue()
 				if mapValDesc.Kind() == protoreflect.MessageKind {
-					fullFieldFlat = flatFieldName(fullFieldFlat, mapValDesc.Message(), lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())), config)
+					fullFieldFlat = flatFieldName(fullFieldFlat, mapValDesc.Message(), lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())))
 				} else {
 					fullFieldFlat = append(fullFieldFlat, string(f.Name())+".mapVal")
 				}
 			} else {
 				fm := f.Message()
 				var noMsgMapList = true
+				fields := make([]string, 0)
 				for j := 0; j < fm.Fields().Len(); j++ {
 					fmf := fm.Fields().Get(j)
 					if fmf.IsMap() || fmf.IsList() || fmf.Kind() == protoreflect.MessageKind {
 						noMsgMapList = false
 						break
 					}
+					fields = append(fields, string(fmf.Name()))
 				}
-				if noMsgMapList && fm.Fields().Len() <= config.CompatMsgWithMaxFields {
-					fullFieldFlat = append(fullFieldFlat, lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())))
+				msgOpt := configs.GetMsgOpt(fm)
+				if noMsgMapList && msgOpt != nil && msgOpt.GetOneColumn() {
+					quoteName := string(f.Name()) + "{" + strings.Join(fields, ";") + "}"
+					fullFieldFlat = append(fullFieldFlat, lo.If(prefix == "", quoteName).Else(prefix+"."+quoteName))
 				} else {
-					fullFieldFlat = flatFieldName(fullFieldFlat, f.Message(), lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())), config)
+					fullFieldFlat = flatFieldName(fullFieldFlat, f.Message(), lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())))
 				}
 			}
 		} else {

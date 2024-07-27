@@ -3,8 +3,47 @@ syntax = "proto3";
 option go_package="github.com/yaoguangduan/reskeeper/resproto";
 import "google/protobuf/descriptor.proto";
 
+enum ResMarshalFormat {
+  Bin = 0;
+  Text = 1;
+  Json = 2;
+}
+
+message ResourceFileOpt {
+  optional string excel_path = 1;
+  optional string marshal_path = 2;
+  repeated ResMarshalFormat marshal_formats = 3;
+}
+
+extend google.protobuf.FileOptions {
+  optional ResourceFileOpt res_file_opt = 50100;
+}
+
+message ResourceTableOpt {
+  optional string excel_and_sheet_name = 1;
+  optional string marshal_prefix = 2;
+  repeated string marshal_tags = 3;
+}
+
+message ResourceMsgOpt {
+  repeated string tag_ignore_fields = 1;
+  optional string msg_key = 2;
+  optional bool one_column = 3;
+}
 
 extend google.protobuf.MessageOptions {
-  string excel_and_sheet_name = 50001;
-  string key = 50002;
+  optional ResourceTableOpt res_table_opt = 50110;
+  optional ResourceMsgOpt res_msg_opt = 50111;
+}
+
+message ResourceFieldValidate {
+  optional bool no_null = 1;
+  optional bool uniq = 2;
+  optional string length = 3;
+  optional string range = 4;
+  optional string pattern = 5;
+}
+
+extend google.protobuf.FieldOptions {
+  repeated ResourceFieldValidate res_validate= 50120;
 }

@@ -1,17 +1,29 @@
 package main
 
 import (
+	"flag"
 	"github.com/yaoguangduan/reskeeper/internal"
 	_ "google.golang.org/protobuf/reflect/protodesc"
-	"os"
+	"strings"
 )
 
-func main() {
+// 定义一个自定义标志类型
+type protoList []string
 
-	var file = "resource.toml"
-	if len(os.Args) >= 2 {
-		file = os.Args[1]
-	}
-	internal.Gen(file)
+func (s *protoList) String() string {
+	return strings.Join(*s, ",")
+}
+
+func (s *protoList) Set(value string) error {
+	*s = append(*s, value)
+	return nil
+}
+
+func main() {
+	var list protoList
+	flag.Var(&list, "list", "a list of strings")
+	flag.Parse()
+
+	internal.Gen(list)
 
 }

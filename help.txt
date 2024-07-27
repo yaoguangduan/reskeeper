@@ -1,0 +1,2 @@
+ ./protoc.exe --go_out=./pbgen --descriptor_set_out=desc_set_1722056453.pb --proto_path=pb --proto_path=pb/google/protobuf pb/*.proto pb/google/protobuf/*.proto
+./protoc.exe --go_out=./resproto --descriptor_set_out=desc_set_1722056453.pb --proto_path=pb --proto_path=pb/google/protobuf pb/*.proto pb/google/protobuf/*.proto

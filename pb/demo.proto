@@ -39,6 +39,7 @@ message Government {
 }
 
 message Paper {
+  option (res_msg_opt)={one_column:true};
   optional int32  id = 1;
   optional string desc = 2;
 }
@@ -61,13 +62,18 @@ message Food {
   optional float weight = 3;
 }
 message Animal {
+  option (res_msg_opt) = {msg_key:"id"};
   optional string name = 1;
   optional string detail = 2;
   optional uint64 count = 3;
   repeated Food foods = 4;
 }
 message Zoo {
-  optional int32 id = 1;//test //maka
+  option (res_msg_opt) = {
+    tag_ignore_fields:["compact:2,4-9,11"],
+    msg_key:"id"
+  };
+  optional int32 id = 1 [(res_validate)={no_null:true}];
   optional string desc = 2;
   optional Manager manager = 3;
   oneof belong {
@@ -81,9 +87,4 @@ message Zoo {
   optional ZooLevel level = 10;
   repeated int32 openDays = 11;
 
-}
-
-message ZooTable {
-  option (excel_and_sheet_name)="测试样例.xlsx#动物园列表";
-  repeated Zoo zoos = 1;
 }

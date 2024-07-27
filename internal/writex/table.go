@@ -7,42 +7,34 @@ import (
 	"strings"
 )
 
+type ColHead struct {
+	Name       string
+	Col        int
+	Additional string
+}
+
 type SheetTable struct {
-	Heads map[string]map[string]int
+	Heads map[string]ColHead
 	Data  [][]string
 }
 
 func ParseToSheetTable(data [][]string) SheetTable {
-	st := SheetTable{Heads: map[string]map[string]int{}, Data: [][]string{}}
-	var maxHeadSize = 0
-	rows, headLines := removeIgnoreColAndGetHeadLines(data)
-	ignoreRows := make([]int, 0)
-	for idx, row := range rows {
-		if len(row) <= 0 || idx == 0 {
-			ignoreRows = append(ignoreRows, idx)
-			continue
-		}
-		if slices.Contains(lo.Keys(headLines), idx) {
-			head := make(map[string]int)
-			for col, cell := range row {
-				if cell != "" {
-					head[cell] = col
-				}
-			}
-			maxHeadSize = max(maxHeadSize, len(head))
-			st.Heads[headLines[idx]] = head
-			ignoreRows = append(ignoreRows, idx)
-		}
-		if strings.HasPrefix(row[0], "#") {
-			ignoreRows = append(ignoreRows, idx)
+	st := SheetTable{Heads: make(map[string]ColHead), Data: [][]string{}}
+
+	useful := lo.Filter(data, func(item []string, index int) bool {
+		return len(item) > 0 && !strings.HasPrefix(item[0], "#")
+	})
+	for col, cell := range useful[0] {
+		if cell != "" {
+			var idx = strings.Index(cell, "{")
+			idx = lo.If(idx == -1, len(cell)).Else(idx)
+			st.Heads[cell[0:idx]] = ColHead{Name: cell[0:idx], Col: col, Additional: cell[idx:]}
 		}
 	}
-	useful := lo.Filter(rows, func(item []string, index int) bool {
-		return !slices.Contains(ignoreRows, index)
-	})
+	useful = useful[1:]
 	for i := range useful {
-		if len(useful[i]) < maxHeadSize {
-			useful[i] = append(useful[i], make([]string, maxHeadSize-len(useful[i]))...)
+		if len(useful[i]) < len(st.Heads) {
+			useful[i] = append(useful[i], make([]string, len(st.Heads)-len(useful[i]))...)
 		}
 	}
 	st.Data = useful
