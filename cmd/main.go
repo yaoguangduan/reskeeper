@@ -21,7 +21,7 @@ func (s *protoList) Set(value string) error {
 
 func main() {
 	var list protoList
-	flag.Var(&list, "list", "a list of strings")
+	flag.Var(&list, "bps", "a list of proto dir")
 	flag.Parse()
 
 	internal.Gen(list)
