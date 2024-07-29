@@ -68,7 +68,7 @@ func GenerateOneSheet(file *excelize.File, table configs.ResTableConfig, protos 
 	}
 }
 
-func generateOneTable(tag string, data SheetTable, tableMsgDesc protoreflect.MessageDescriptor, msgDesc protoreflect.MessageDescriptor, table configs.ResTableConfig) {
+func generateOneTable(tag string, data SheetData, tableMsgDesc protoreflect.MessageDescriptor, msgDesc protoreflect.MessageDescriptor, table configs.ResTableConfig) {
 	tableMsg := dynamicpb.NewMessage(tableMsgDesc)
 	msgField := protox.GetFieldByMsgType(msgDesc, tableMsgDesc)
 	var msg protoreflect.Message = nil
@@ -77,11 +77,14 @@ func generateOneTable(tag string, data SheetTable, tableMsgDesc protoreflect.Mes
 		if needCreateNewMsg(msgDesc, data.Heads, line) { //一条新消息
 			msg = msgList.AppendMutable().Message()
 		}
-		pressOneLineIntoMsg(tag, msg, idx, data, msgDesc)
+		parseOneLineIntoMsg(tag, msg, idx, data, msgDesc)
 	}
-	fmt.Println(protojson.Format(tableMsg))
+	var outPrefix = table.MessageName
+	if table.Opt.MarshalPrefix != nil {
+		outPrefix = *table.Opt.MarshalPrefix
+	}
 	var formats = table.Belong.Opt.GetMarshalFormats()
-	filename := filepath.Join(table.Belong.Opt.GetMarshalPath(), table.MessageName+"_"+tag+".")
+	filename := filepath.Join(table.Belong.Opt.GetMarshalPath(), outPrefix+"_"+tag+".")
 	if formats != nil && len(formats) > 0 {
 		for _, format := range formats {
 			switch format {
@@ -116,19 +119,18 @@ func needCreateNewMsg(desc protoreflect.MessageDescriptor, nameColMap map[string
 	return keyValue != ""
 }
 
-func pressOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, data SheetTable, desc protoreflect.MessageDescriptor) {
+func parseOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, data SheetData, desc protoreflect.MessageDescriptor) {
 	msgOpt := protox.GetMsgOptOrDefault(desc)
-	noRecurCols := lo.PickBy(data.Heads, func(key string, value ColHead) bool {
+	line := data.Data[lineIndex]
+	selfFields := lo.PickBy(data.Heads, func(key string, value ColHead) bool {
 		return !strings.Contains(key, ".")
 	})
-	line := data.Data[lineIndex]
-	for _, colHead := range noRecurCols {
+	for _, colHead := range selfFields {
 		value := line[colHead.Col]
 		field := desc.Fields().ByName(protoreflect.Name(colHead.Name))
 		if value == "" || protox.IgnoreCurField(tag, msgOpt, field) {
 			continue
 		}
-
 		if field.IsList() {
 			list := msg.Mutable(field).List()
 			for _, val := range strings.Split(value, "|") {
@@ -138,6 +140,11 @@ func pressOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, da
 			msg.Set(field, getFieldValueFromStr(tag, field, value, colHead))
 		}
 	}
+	processNestedFields(tag, msg, lineIndex, data, desc, msgOpt)
+}
+
+func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, data SheetData, desc protoreflect.MessageDescriptor, msgOpt *resproto.ResourceMsgOpt) {
+	line := data.Data[lineIndex]
 	commonPrefixMap := make(map[string]map[string]ColHead)
 	for _, colHead := range data.Heads {
 		if !strings.Contains(colHead.Name, ".") {
@@ -165,34 +172,64 @@ func pressOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, da
 		}
 		if field.IsMap() {
 			mapField := msg.Mutable(field).Map()
-			keyStr := getPrevNoEmptyVal(data.Data, lineIndex, ncm["mapKey"].Col)
-			if keyStr == "" {
-				panic(fmt.Sprintf("missing map key for line :%d,col:%d", lineIndex, ncm["mapKey"]))
-			}
-			delete(ncm, "mapKey")
+			keyVal := getMapKeyOfMap(tag, ncm, data, lineIndex, field)
 			mapValDesc := field.MapValue()
-			keyVal := protoreflect.MapKey(getFieldValueFromStr(tag, field.MapKey(), keyStr, ncm["mapKey"]))
 			if mapValDesc.Kind() == protoreflect.MessageKind {
 				var valVal = mapField.Mutable(keyVal)
-				pressOneLineIntoMsg(tag, valVal.Message(), lineIndex, SheetTable{Heads: ncm, Data: data.Data}, mapValDesc.Message())
+				parseOneLineIntoMsg(tag, valVal.Message(), lineIndex, SheetData{Heads: ncm, Data: data.Data}, mapValDesc.Message())
 			} else {
-				valVal := getFieldValueFromStr(tag, mapValDesc, line[ncm["mapVal"].Col], ncm["mapVal"])
-				mapField.Set(keyVal, valVal)
+				valHead, exist := ncm["mapVal"]
+				if !exist {
+					mapField.Set(keyVal, field.Default())
+				} else {
+					valVal := getFieldValueFromStr(tag, mapValDesc, line[valHead.Col], valHead)
+					mapField.Set(keyVal, valVal)
+				}
 			}
 		} else if field.IsList() {
 			list := msg.Mutable(field).List()
 			if needCreateNewMsg(field.Message(), ncm, line) {
 				var fieldMsg = list.AppendMutable().Message()
-				pressOneLineIntoMsg(tag, fieldMsg, lineIndex, SheetTable{Heads: ncm, Data: data.Data}, field.Message())
+				parseOneLineIntoMsg(tag, fieldMsg, lineIndex, SheetData{Heads: ncm, Data: data.Data}, field.Message())
 			} else {
 				var fieldMsg = list.Get(list.Len() - 1).Message()
-				pressOneLineIntoMsg(tag, fieldMsg, lineIndex, SheetTable{Heads: ncm, Data: data.Data}, field.Message())
+				parseOneLineIntoMsg(tag, fieldMsg, lineIndex, SheetData{Heads: ncm, Data: data.Data}, field.Message())
 			}
 		} else {
 			fieldMsg := msg.Mutable(field).Message()
-			pressOneLineIntoMsg(tag, fieldMsg, lineIndex, SheetTable{Heads: ncm, Data: data.Data}, field.Message())
+			parseOneLineIntoMsg(tag, fieldMsg, lineIndex, SheetData{Heads: ncm, Data: data.Data}, field.Message())
 		}
 	}
+}
+
+func getMapKeyOfMap(tag string, ncm map[string]ColHead, data SheetData, lineIndex int, field protoreflect.FieldDescriptor) protoreflect.MapKey {
+	var col = -1
+	if _, exist := ncm["mapKey"]; exist {
+		col = ncm["mapKey"].Col
+	} else {
+		if field.MapValue().Kind() != protoreflect.MessageKind {
+			panic(fmt.Sprintf("missing map key for line :%d,msg:%v", lineIndex, field.Name()))
+		}
+		mapValDesc := field.MapValue().Message()
+		if !proto.HasExtension(mapValDesc.Options(), resproto.E_ResMsgOpt) || proto.GetExtension(mapValDesc.Options(), resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt).MsgKey == nil {
+			panic(fmt.Sprintf("missing map key for line :%d,msg:%v", lineIndex, field.Name()))
+		}
+		keyField := proto.GetExtension(mapValDesc.Options(), resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt).MsgKey
+		keyColHead, ok := ncm[*keyField]
+		if !ok {
+			panic(fmt.Sprintf("missing map key for line :%d,msg:%v", lineIndex, field.Name()))
+		}
+		col = keyColHead.Col
+	}
+	if col == -1 {
+		panic(fmt.Sprintf("missing map key for line :%d,msg:%v", lineIndex, field.Name()))
+	}
+	keyStr := getPrevNoEmptyVal(data.Data, lineIndex, ncm["mapKey"].Col)
+	if keyStr == "" {
+		panic(fmt.Sprintf("missing map key for line :%d,msg:%v", lineIndex, field.Name()))
+	}
+	delete(ncm, "mapKey")
+	return protoreflect.MapKey(getFieldValueFromStr(tag, field.MapKey(), keyStr, ncm["mapKey"]))
 }
 
 // 获取从line开始倒数，col列的第一个非零string
@@ -240,7 +277,7 @@ func getFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell s
 		for i, f := range fieldHead {
 			nameColMap[f] = ColHead{Name: f, Col: i, Additional: ""}
 		}
-		pressOneLineIntoMsg(tag, tmp, 0, SheetTable{Heads: nameColMap, Data: [][]string{line}}, fmd)
+		parseOneLineIntoMsg(tag, tmp, 0, SheetData{Heads: nameColMap, Data: [][]string{line}}, fmd)
 		value = protoreflect.ValueOfMessage(tmp)
 	}
 	return value

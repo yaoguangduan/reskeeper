@@ -1,0 +1,11 @@
+{
+  "zoos":  [
+    {
+      "id":  111,
+      "manager":  {
+        "name":  "alen"
+      },
+      "level":  "Orange"
+    }
+  ]
+}

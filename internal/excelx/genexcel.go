@@ -7,6 +7,8 @@ import (
 	"github.com/yaoguangduan/reskeeper/internal/configs"
 	"github.com/yaoguangduan/reskeeper/internal/excelx/styles"
 	"github.com/yaoguangduan/reskeeper/internal/protox"
+	"github.com/yaoguangduan/reskeeper/resproto"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"os"
 	"path/filepath"
@@ -58,7 +60,7 @@ func adjustExcelWithConfig(excel string, tables []configs.ResTableConfig, config
 		panic(err)
 	}
 	defer func() {
-		lo.Must0(file.Close())
+		lo.Must0(file.Save())
 	}()
 	for _, table := range tables {
 		var index = lo.Must(file.GetSheetIndex(table.GetSheetName()))
@@ -126,8 +128,7 @@ func flatFieldName(fullFieldFlat []interface{}, msgD protoreflect.MessageDescrip
 					}
 					fields = append(fields, string(fmf.Name()))
 				}
-				msgOpt := configs.GetMsgOpt(fm)
-				if noMsgMapList && msgOpt != nil && msgOpt.GetOneColumn() {
+				if noMsgMapList && proto.HasExtension(f.Options(), resproto.E_ResOneColumn) && proto.GetExtension(f.Options(), resproto.E_ResOneColumn).(bool) {
 					quoteName := string(f.Name()) + "{" + strings.Join(fields, ";") + "}"
 					fullFieldFlat = append(fullFieldFlat, lo.If(prefix == "", quoteName).Else(prefix+"."+quoteName))
 				} else {

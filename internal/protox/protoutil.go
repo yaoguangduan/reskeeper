@@ -33,7 +33,7 @@ func GetFieldByMsgType(fieldMsg protoreflect.MessageDescriptor, msg protoreflect
 
 func GetMsgOptOrDefault(desc protoreflect.MessageDescriptor) *resproto.ResourceMsgOpt {
 	mo := desc.Options().(*descriptorpb.MessageOptions)
-	var msgOpt = &resproto.ResourceMsgOpt{TagIgnoreFields: make([]string, 0), MsgKey: proto.String(string(desc.Fields().Get(0).Name())), OneColumn: proto.Bool(false)}
+	var msgOpt = &resproto.ResourceMsgOpt{TagIgnoreFields: make([]string, 0), MsgKey: proto.String(string(desc.Fields().Get(0).Name()))}
 	if proto.HasExtension(mo, resproto.E_ResMsgOpt) {
 		msgOpt = proto.GetExtension(mo, resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt)
 	}

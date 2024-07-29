@@ -28,7 +28,6 @@ message ResourceTableOpt {
 message ResourceMsgOpt {
   repeated string tag_ignore_fields = 1;
   optional string msg_key = 2;
-  optional bool one_column = 3;
 }
 
 extend google.protobuf.MessageOptions {
@@ -46,4 +45,5 @@ message ResourceFieldValidate {
 
 extend google.protobuf.FieldOptions {
   repeated ResourceFieldValidate res_validate= 50120;
+  optional bool res_one_column = 50121;
 }

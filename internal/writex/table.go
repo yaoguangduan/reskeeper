@@ -13,13 +13,13 @@ type ColHead struct {
 	Additional string
 }
 
-type SheetTable struct {
+type SheetData struct {
 	Heads map[string]ColHead
 	Data  [][]string
 }
 
-func ParseToSheetTable(data [][]string) SheetTable {
-	st := SheetTable{Heads: make(map[string]ColHead), Data: [][]string{}}
+func ParseToSheetTable(data [][]string) SheetData {
+	st := SheetData{Heads: make(map[string]ColHead), Data: [][]string{}}
 
 	useful := lo.Filter(data, func(item []string, index int) bool {
 		return len(item) > 0 && !strings.HasPrefix(item[0], "#")

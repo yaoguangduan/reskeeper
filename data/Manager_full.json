@@ -1,0 +1,25 @@
+{
+  "mgr":  [
+    {
+      "age":  12,
+      "name":  "CC",
+      "addr":  {
+        "name":  "shanghai",
+        "x":  36.32,
+        "y":  985.4
+      },
+      "assistants":  [
+        {
+          "name":  "AA",
+          "level":  23,
+          "direction":  "drink"
+        },
+        {
+          "name":  "jj",
+          "level":  22,
+          "direction":  "eat"
+        }
+      ]
+    }
+  ]
+}

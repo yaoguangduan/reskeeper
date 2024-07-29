@@ -21,7 +21,7 @@ message Manager {
   optional int32 age = 1;
   optional string name = 2;
   optional AddressDetail addr = 3;
-  repeated Assistant assistants = 4;
+  repeated Assistant assistants = 4[(res_one_column)=true];
 }
 
 message AddressDetail {
@@ -40,12 +40,12 @@ message Government {
 }
 
 message Paper {
-  option (res_msg_opt)={one_column:true};
   optional int32  id = 1;
   optional string desc = 2;
 }
 
 message BorrowInfo {
+  option (res_msg_opt) = {msg_key:"name"};
   optional string name = 1;
   optional uint32 count = 2;
   optional string reason = 3;
@@ -79,10 +79,10 @@ message Zoo {
     Government government = 5;
     string other = 6;
   }
-  map<uint64,BorrowInfo> borrows = 7;
+  map<string,BorrowInfo> borrows = 7;
   repeated Animal animals = 8;
   map<int32,string> logs = 9;
-  optional ZooLevel level = 10;
+  ZooLevel level = 10;
   repeated int32 openDays = 11;
 
 }

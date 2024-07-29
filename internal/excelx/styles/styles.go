@@ -44,7 +44,8 @@ func FontAlignCenter(f *excelize.File) int {
 
 func FontBold(f *excelize.File) int {
 	style, err := f.NewStyle(&excelize.Style{
-		Font: &excelize.Font{Bold: true},
+		Font:      &excelize.Font{Bold: true},
+		Alignment: &excelize.Alignment{Horizontal: "center"},
 	})
 	if err != nil {
 		fmt.Println(err)
