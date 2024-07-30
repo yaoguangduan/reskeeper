@@ -26,6 +26,10 @@ type ResTableConfig struct {
 	Belong      ResProtoFileConfig
 }
 
+func (t ResTableConfig) ExcelWithFieldType() bool {
+	return t.Opt.ExcelWithFieldType != nil && *t.Opt.ExcelWithFieldType
+}
+
 func (t ResTableConfig) GetExcelName() string {
 	return t.Opt.GetExcelAndSheetName()[0:strings.Index(t.Opt.GetExcelAndSheetName(), "#")]
 }

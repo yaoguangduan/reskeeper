@@ -1,52 +1,82 @@
 mgr:  {
-  name:  "JHHH"
+  age:  23
+  name:  "ASDE"
+  addr:  {
+    name:  "BJ"
+    x:  23.2
+    y:  78.1
+  }
+  assistants:  {
+    name:  "JJ"
+    level:  88
+    direction:  "health"
+  }
+  assistants:  {
+    name:  "AA"
+    level:  90
+    direction:  "eat"
+  }
+  actonFlow:  {
+    key:  1920
+    value:  "fight"
+  }
+  actonFlow:  {
+    key:  1990
+    value:  "eateat"
+  }
   papers:  {
-    key:  1111
+    key:  111
     value:  {
-      id:  1111
-      desc:  "papapa1"
+      id:  111
+      desc:  "p1p1"
     }
   }
   papers:  {
-    key:  22222
+    key:  222
     value:  {
-      id:  22222
-      desc:  "papapapa2"
+      id:  222
+      desc:  "p2p2"
     }
   }
   oldPaper:  {
-    key:  "33333"
-    value:  {}
+    key:  "333"
+    value:  {
+      id:  333
+      desc:  "p3p3"
+    }
   }
   oldPaper:  {
-    key:  "44444"
-    value:  {}
-  }
-  paddingPaper:  {
-    key:  "55555"
+    key:  "444"
     value:  {
-      id:  55555
-      desc:  "p5p5p5p5"
+      id:  444
+      desc:  "p4p4"
     }
   }
   paddingPaper:  {
-    key:  "66666"
+    key:  "555"
     value:  {
-      id:  66666
-      desc:  "p6p6p6p6"
+      id:  555
+      desc:  "p5p5"
+    }
+  }
+  paddingPaper:  {
+    key:  "666"
+    value:  {
+      id:  666
+      desc:  "p6p6"
     }
   }
   copyPaper:  {
-    key:  "77777"
+    key:  "777"
     value:  {
-      id:  77777
+      id:  777
       desc:  "p7p7"
     }
   }
   copyPaper:  {
-    key:  "88888"
+    key:  "888"
     value:  {
-      id:  88888
+      id:  888
       desc:  "p8p8"
     }
   }

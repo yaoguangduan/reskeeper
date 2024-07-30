@@ -53,6 +53,14 @@ func GetMsgOptOrDefault(desc protoreflect.MessageDescriptor) *resproto.ResourceM
 	}
 	return msgOpt
 }
+func GetTableOptOrDefault(desc protoreflect.MessageDescriptor) *resproto.ResourceTableOpt {
+	mo := desc.Options().(*descriptorpb.MessageOptions)
+	var msgOpt = &resproto.ResourceTableOpt{}
+	if proto.HasExtension(mo, resproto.E_ResTableOpt) {
+		msgOpt = proto.GetExtension(mo, resproto.E_ResTableOpt).(*resproto.ResourceTableOpt)
+	}
+	return msgOpt
+}
 
 func IgnoreCurField(tag string, opt *resproto.ResourceMsgOpt, field protoreflect.FieldDescriptor) bool {
 	if len(opt.TagIgnoreFields) == 0 {

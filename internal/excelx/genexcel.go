@@ -60,7 +60,11 @@ func adjustExcelWithConfig(excel string, tables []configs.ResTableConfig, config
 		panic(err)
 	}
 	defer func() {
-		lo.Must0(file.Save())
+		if err := recover(); err != nil {
+			panic(err)
+		} else {
+			lo.Must0(file.Save())
+		}
 	}()
 	for _, table := range tables {
 		var index = lo.Must(file.GetSheetIndex(table.GetSheetName()))
@@ -78,9 +82,13 @@ func newExcelWithConfig(excel string, tables []configs.ResTableConfig, config co
 	excelFile := excelize.NewFile()
 
 	defer func() {
-		_ = excelFile.DeleteSheet("Sheet1")
-		if err := excelFile.SaveAs(fp); err != nil {
+		if err := recover(); err != nil {
 			panic(err)
+		} else {
+			_ = excelFile.DeleteSheet("Sheet1")
+			if err = excelFile.SaveAs(fp); err != nil {
+				panic(err)
+			}
 		}
 	}()
 	for _, table := range tables {
@@ -96,7 +104,7 @@ func createTableSheetOnExcel(excelFile *excelize.File, table configs.ResTableCon
 	msgD := files.GetMessage(table.MessageName)
 
 	fullFieldFlat := make([]interface{}, 0)
-	fullFieldFlat = flatFieldName(fullFieldFlat, msgD, "")
+	fullFieldFlat = flatFieldName(fullFieldFlat, msgD, "", table)
 
 	lo.Must0(excelFile.SetSheetRow(table.GetSheetName(), "A1", &fullFieldFlat))
 	lo.Must0(excelFile.SetRowStyle(table.GetSheetName(), 1, 65535, styles.FontAlignCenter(excelFile)))
@@ -104,7 +112,7 @@ func createTableSheetOnExcel(excelFile *excelize.File, table configs.ResTableCon
 	styles.AdjustColumnWidth(excelFile, table.GetSheetName(), len(fullFieldFlat))
 }
 
-func flatFieldName(fullFieldFlat []interface{}, msgD protoreflect.MessageDescriptor, prefix string) []interface{} {
+func flatFieldName(fullFieldFlat []interface{}, msgD protoreflect.MessageDescriptor, prefix string, table configs.ResTableConfig) []interface{} {
 	for i := 0; i < msgD.Fields().Len(); i++ {
 		f := msgD.Fields().Get(i)
 		if f.Kind() == protoreflect.MessageKind {
@@ -115,32 +123,50 @@ func flatFieldName(fullFieldFlat []interface{}, msgD protoreflect.MessageDescrip
 				}
 				if f.MapValue().Kind() != protoreflect.MessageKind {
 					if oneColumn {
-						colName := string(f.Name()) + "{" + f.MapKey().Kind().String() + ";" + f.MapValue().Kind().String() + "}"
+						var colName = fmt.Sprintf("%s{map-key;map-val}", string(f.Name()))
+						if table.ExcelWithFieldType() {
+							colName = fmt.Sprintf("%s{map-key(%s);map-val(%s)}", string(f.Name()), f.MapKey().Kind().String(), f.MapValue().Kind().String())
+						}
 						fullFieldFlat = append(fullFieldFlat, lo.If(prefix == "", colName).Else(prefix+"."+colName))
 					} else {
-						keyName := lo.If(prefix == "", string(f.Name())+".mapKey").Else(prefix + "." + string(f.Name()) + ".mapKey")
-						valName := lo.If(prefix == "", string(f.Name())+".mapVal").Else(prefix + "." + string(f.Name()) + ".mapVal")
-						fullFieldFlat = append(fullFieldFlat, keyName)
-						fullFieldFlat = append(fullFieldFlat, valName)
+						fullFieldFlat = append(fullFieldFlat, fieldExcelHead(prefix, string(f.Name())+".map-key", f.MapKey(), table))
+						fullFieldFlat = append(fullFieldFlat, fieldExcelHead(prefix, string(f.Name())+".map-val", f.MapValue(), table))
 					}
 				} else {
 					if !proto.HasExtension(f.Options(), resproto.E_ResUseMsgKey) || !proto.GetExtension(f.Options(), resproto.E_ResUseMsgKey).(bool) {
-						keyName := lo.If(prefix == "", string(f.Name())+".mapKey").Else(prefix + "." + string(f.Name()) + ".mapKey")
-						fullFieldFlat = append(fullFieldFlat, keyName)
+						fullFieldFlat = append(fullFieldFlat, fieldExcelHead(prefix, string(f.Name())+".map-key", f.MapKey(), table))
 					}
-					fullFieldFlat = flatOneMessage(fullFieldFlat, f, prefix)
+					fullFieldFlat = flatOneMessage(fullFieldFlat, f, prefix, table)
 				}
 			} else {
-				fullFieldFlat = flatOneMessage(fullFieldFlat, f, prefix)
+				fullFieldFlat = flatOneMessage(fullFieldFlat, f, prefix, table)
 			}
 		} else {
-			fullFieldFlat = append(fullFieldFlat, lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())))
+			fullFieldFlat = append(fullFieldFlat, fieldExcelHead(prefix, string(f.Name()), f, table))
 		}
 	}
 	return fullFieldFlat
 }
 
-func flatOneMessage(fullFieldFlat []interface{}, f protoreflect.FieldDescriptor, prefix string) []interface{} {
+func fieldExcelHead(prefix string, name string, fd protoreflect.FieldDescriptor, table configs.ResTableConfig) string {
+	var ns = name
+	if prefix != "" {
+		ns = prefix + "." + ns
+	}
+	var fs = fd.Kind().String()
+	if fd.Kind() == protoreflect.MessageKind {
+		fs = string(fd.Message().Name())
+	} else if fd.Kind() == protoreflect.EnumKind {
+		fs = string(fd.Enum().Name())
+	}
+	if table.ExcelWithFieldType() {
+		return ns + "(" + fs + ")"
+	} else {
+		return ns
+	}
+}
+
+func flatOneMessage(fullFieldFlat []interface{}, f protoreflect.FieldDescriptor, prefix string, table configs.ResTableConfig) []interface{} {
 	var fm = f.Message()
 	if f.IsMap() {
 		fm = f.MapValue().Message()
@@ -153,16 +179,20 @@ func flatOneMessage(fullFieldFlat []interface{}, f protoreflect.FieldDescriptor,
 			noMsgMapList = false
 			break
 		}
-		fields = append(fields, string(fmf.Name()))
+		if table.ExcelWithFieldType() {
+			fields = append(fields, fieldExcelHead("", string(fmf.Name()), fmf, table))
+		} else {
+			fields = append(fields, string(fmf.Name()))
+		}
 	}
 	if noMsgMapList && proto.HasExtension(f.Options(), resproto.E_ResOneColumn) && proto.GetExtension(f.Options(), resproto.E_ResOneColumn).(bool) {
 		var quoteName = string(f.Name()) + "{" + strings.Join(fields, ";") + "}"
 		if f.IsMap() && (!proto.HasExtension(f.Options(), resproto.E_ResUseMsgKey) || !proto.GetExtension(f.Options(), resproto.E_ResUseMsgKey).(bool)) {
-			quoteName = string(f.Name()) + ".mapVal{" + strings.Join(fields, ";") + "}"
+			quoteName = string(f.Name()) + ".map-val{" + strings.Join(fields, ";") + "}"
 		}
 		fullFieldFlat = append(fullFieldFlat, lo.If(prefix == "", quoteName).Else(prefix+"."+quoteName))
 	} else {
-		fullFieldFlat = flatFieldName(fullFieldFlat, fm, lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())))
+		fullFieldFlat = flatFieldName(fullFieldFlat, fm, lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())), table)
 	}
 	return fullFieldFlat
 }

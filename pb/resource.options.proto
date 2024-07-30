@@ -23,6 +23,7 @@ message ResourceTableOpt {
   optional string excel_and_sheet_name = 1;
   optional string marshal_prefix = 2;
   repeated string marshal_tags = 3;
+  optional bool excel_with_field_type = 4;
 }
 
 message ResourceMsgOpt {

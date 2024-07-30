@@ -73,7 +73,7 @@ func generateOneTable(tag string, data SheetData, tableMsgDesc protoreflect.Mess
 	msgField := protox.GetFieldByMsgType(msgDesc, tableMsgDesc)
 	var msg protoreflect.Message = nil
 	msgList := tableMsg.Mutable(msgField).List()
-	for idx, line := range data.Data {
+	for idx, line := range data.Lines {
 		if needCreateNewMsg(msgDesc, data.Heads, line) { //一条新消息
 			msg = msgList.AppendMutable().Message()
 		}
@@ -122,7 +122,7 @@ func needCreateNewMsg(desc protoreflect.MessageDescriptor, nameColMap map[string
 func parseOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, data SheetData) {
 	desc := msg.Descriptor()
 	msgOpt := protox.GetMsgOptOrDefault(desc)
-	line := data.Data[lineIndex]
+	line := data.Lines[lineIndex]
 	selfFields := lo.PickBy(data.Heads, func(key string, value ColHead) bool {
 		return !strings.Contains(key, ".")
 	})
@@ -152,7 +152,7 @@ func parseOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, da
 }
 
 func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, data SheetData, desc protoreflect.MessageDescriptor, msgOpt *resproto.ResourceMsgOpt) {
-	line := data.Data[lineIndex]
+	line := data.Lines[lineIndex]
 	commonPrefixMap := make(map[string]map[string]ColHead)
 	for _, colHead := range data.Heads {
 		if !strings.Contains(colHead.Name, ".") {
@@ -163,7 +163,7 @@ func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, da
 		if _, ok := commonPrefixMap[prefix]; !ok {
 			commonPrefixMap[prefix] = make(map[string]ColHead)
 		}
-		commonPrefixMap[prefix][suffix] = ColHead{Name: suffix, Col: colHead.Col, Additional: colHead.Additional}
+		commonPrefixMap[prefix][suffix] = ColHead{Name: suffix, Col: colHead.Col, NestFields: colHead.NestFields}
 	}
 	for prefix, ncm := range commonPrefixMap {
 		field := desc.Fields().ByName(protoreflect.Name(prefix))
@@ -183,23 +183,23 @@ func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, da
 			mapValDesc := field.MapValue()
 			if mapValDesc.Kind() == protoreflect.MessageKind {
 				var valVal = mapField.Mutable(keyVal)
-				valHead, exist := ncm["mapVal"]
+				valHead, exist := ncm["map-val"]
 				if exist {
-					fieldHead := strings.Split(strings.TrimSuffix(strings.TrimPrefix(valHead.Additional, "{"), "}"), ";")
+					fieldHead := strings.Split(strings.TrimSuffix(strings.TrimPrefix(valHead.NestFields, "{"), "}"), ";")
 					currentLine := strings.Split(line[valHead.Col], ";")
 					if len(fieldHead) != len(currentLine) {
 						panic(fmt.Sprintf("cell value error msg %v field not match value %s", field.Name(), line[valHead.Col]))
 					}
 					nameColMap := make(map[string]ColHead)
 					for i, f := range fieldHead {
-						nameColMap[f] = ColHead{Name: f, Col: i, Additional: ""}
+						nameColMap[f] = ColHead{Name: f, Col: i, NestFields: ""}
 					}
-					parseOneLineIntoMsg(tag, valVal.Message(), 0, SheetData{Heads: nameColMap, Data: [][]string{currentLine}})
+					parseOneLineIntoMsg(tag, valVal.Message(), 0, SheetData{Heads: nameColMap, Lines: [][]string{currentLine}})
 				} else {
-					parseOneLineIntoMsg(tag, valVal.Message(), lineIndex, SheetData{Heads: ncm, Data: data.Data})
+					parseOneLineIntoMsg(tag, valVal.Message(), lineIndex, SheetData{Heads: ncm, Lines: data.Lines})
 				}
 			} else {
-				valHead, exist := ncm["mapVal"]
+				valHead, exist := ncm["map-val"]
 				if !exist {
 					mapField.Set(keyVal, field.Default())
 				} else {
@@ -210,20 +210,20 @@ func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, da
 		} else if field.IsList() {
 			list := msg.Mutable(field).List()
 			if needCreateNewMsg(field.Message(), ncm, line) {
-				parseOneLineIntoMsg(tag, list.AppendMutable().Message(), lineIndex, SheetData{Heads: ncm, Data: data.Data})
+				parseOneLineIntoMsg(tag, list.AppendMutable().Message(), lineIndex, SheetData{Heads: ncm, Lines: data.Lines})
 			} else {
-				parseOneLineIntoMsg(tag, list.Get(list.Len()-1).Message(), lineIndex, SheetData{Heads: ncm, Data: data.Data})
+				parseOneLineIntoMsg(tag, list.Get(list.Len()-1).Message(), lineIndex, SheetData{Heads: ncm, Lines: data.Lines})
 			}
 		} else {
-			parseOneLineIntoMsg(tag, msg.Mutable(field).Message(), lineIndex, SheetData{Heads: ncm, Data: data.Data})
+			parseOneLineIntoMsg(tag, msg.Mutable(field).Message(), lineIndex, SheetData{Heads: ncm, Lines: data.Lines})
 		}
 	}
 }
 
 func getMapKeyFromLine(tag string, ncm map[string]ColHead, data SheetData, lineIndex int, field protoreflect.FieldDescriptor) protoreflect.MapKey {
 	var headCol = ColHead{Col: -1}
-	if _, exist := ncm["mapKey"]; exist {
-		headCol = ncm["mapKey"]
+	if _, exist := ncm["map-key"]; exist {
+		headCol = ncm["map-key"]
 	} else {
 		if field.MapValue().Kind() != protoreflect.MessageKind {
 			panic(fmt.Sprintf("missing map key for line :%d,msg:%v", lineIndex, field.Name()))
@@ -239,11 +239,11 @@ func getMapKeyFromLine(tag string, ncm map[string]ColHead, data SheetData, lineI
 	if headCol.Col == -1 {
 		panic(fmt.Sprintf("missing map key for line :%d,msg:%v", lineIndex, field.Name()))
 	}
-	keyStr := getPrevNoEmptyVal(data.Data, lineIndex, headCol.Col)
+	keyStr := getPrevNoEmptyVal(data.Lines, lineIndex, headCol.Col)
 	if keyStr == "" {
 		panic(fmt.Sprintf("missing map key for line :%d,msg:%v", lineIndex, field.Name()))
 	}
-	delete(ncm, "mapKey")
+	delete(ncm, "map-key")
 	return protoreflect.MapKey(getFieldValueFromStr(tag, field.MapKey(), keyStr, headCol))
 }
 
@@ -285,7 +285,7 @@ func getFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell s
 		if field.IsMap() {
 			fmd = field.MapValue().Message()
 		}
-		fieldHead := strings.Split(strings.TrimSuffix(strings.TrimPrefix(head.Additional, "{"), "}"), ";")
+		fieldHead := strings.Split(strings.TrimSuffix(strings.TrimPrefix(head.NestFields, "{"), "}"), ";")
 		line := strings.Split(cell, ";")
 		if len(fieldHead) != len(line) {
 			panic(fmt.Sprintf("cell value error msg %v field not match value %s", field.Name(), cell))
@@ -301,9 +301,9 @@ func getFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell s
 		tmp := dynamicpb.NewMessage(fmd)
 		nameColMap := make(map[string]ColHead)
 		for i, f := range fieldHead {
-			nameColMap[f] = ColHead{Name: f, Col: i, Additional: ""}
+			nameColMap[f] = ColHead{Name: f, Col: i, NestFields: ""}
 		}
-		parseOneLineIntoMsg(tag, tmp, 0, SheetData{Heads: nameColMap, Data: [][]string{line}})
+		parseOneLineIntoMsg(tag, tmp, 0, SheetData{Heads: nameColMap, Lines: [][]string{line}})
 		if field.IsMap() {
 			parentMsg := field.Parent().(protoreflect.MessageDescriptor)
 			mapField := dynamicpb.NewMessage(parentMsg).Mutable(field).Map()

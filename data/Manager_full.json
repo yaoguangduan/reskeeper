@@ -1,38 +1,66 @@
 {
   "mgr":  [
     {
-      "name":  "JHHH",
-      "papers":  {
-        "1111":  {
-          "id":  1111,
-          "desc":  "papapa1"
+      "age":  23,
+      "name":  "ASDE",
+      "addr":  {
+        "name":  "BJ",
+        "x":  23.2,
+        "y":  78.1
+      },
+      "assistants":  [
+        {
+          "name":  "JJ",
+          "level":  88,
+          "direction":  "health"
         },
-        "22222":  {
-          "id":  22222,
-          "desc":  "papapapa2"
+        {
+          "name":  "AA",
+          "level":  90,
+          "direction":  "eat"
+        }
+      ],
+      "actonFlow":  {
+        "1920":  "fight",
+        "1990":  "eateat"
+      },
+      "papers":  {
+        "111":  {
+          "id":  111,
+          "desc":  "p1p1"
+        },
+        "222":  {
+          "id":  222,
+          "desc":  "p2p2"
         }
       },
       "oldPaper":  {
-        "33333":  {},
-        "44444":  {}
+        "333":  {
+          "id":  333,
+          "desc":  "p3p3"
+        },
+        "444":  {
+          "id":  444,
+          "desc":  "p4p4"
+        }
       },
       "paddingPaper":  {
-        "55555":  {
-          "id":  55555,
-          "desc":  "p5p5p5p5"
+        "555":  {
+          "id":  555,
+          "desc":  "p5p5"
         },
-        "66666":  {
-          "id":  66666,
-          "desc":  "p6p6p6p6"
+        "666":  {
+          "id":  666,
+          "desc":  "p6p6"
         }
       },
       "copyPaper":  {
-        "77777":  {
-          "id":  77777,
+        "777":  {
+          "id":  777,
           "desc":  "p7p7"
         },
-        "88888":  {
-          "id":  88888,
+        "888":  {
+          "id":  888,
           "desc":  "p8p8"
         }
       }
