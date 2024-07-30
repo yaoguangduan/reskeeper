@@ -20,6 +20,20 @@ func GetFieldByNumber(num int32, msg protoreflect.MessageDescriptor) protoreflec
 	panic(fmt.Sprintf("can not find field by number: %d %s", num, msg))
 }
 
+func GetMsgKeyField(msg protoreflect.MessageDescriptor) protoreflect.FieldDescriptor {
+	if proto.HasExtension(msg.Options(), resproto.E_ResMsgOpt) && proto.GetExtension(msg.Options(), resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt) != nil &&
+		proto.GetExtension(msg.Options(), resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt).MsgKey != nil {
+		return msg.Fields().ByName(protoreflect.Name(*proto.GetExtension(msg.Options(), resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt).MsgKey))
+	}
+	for i := 0; i < msg.Fields().Len(); i++ {
+		f := msg.Fields().Get(i)
+		if int32(f.Number()) == 1 {
+			return f
+		}
+	}
+	panic(fmt.Sprintf("can not find field by number: %d %s", 1, msg))
+}
+
 func GetFieldByMsgType(fieldMsg protoreflect.MessageDescriptor, msg protoreflect.MessageDescriptor) protoreflect.FieldDescriptor {
 	for i := 0; i < msg.Fields().Len(); i++ {
 		f := msg.Fields().Get(i)

@@ -1,19 +1,53 @@
 mgr:  {
-  age:  12
-  name:  "CC"
-  addr:  {
-    name:  "shanghai"
-    x:  36.32
-    y:  985.4
+  name:  "JHHH"
+  papers:  {
+    key:  1111
+    value:  {
+      id:  1111
+      desc:  "papapa1"
+    }
   }
-  assistants:  {
-    name:  "AA"
-    level:  23
-    direction:  "drink"
+  papers:  {
+    key:  22222
+    value:  {
+      id:  22222
+      desc:  "papapapa2"
+    }
   }
-  assistants:  {
-    name:  "jj"
-    level:  22
-    direction:  "eat"
+  oldPaper:  {
+    key:  "33333"
+    value:  {}
+  }
+  oldPaper:  {
+    key:  "44444"
+    value:  {}
+  }
+  paddingPaper:  {
+    key:  "55555"
+    value:  {
+      id:  55555
+      desc:  "p5p5p5p5"
+    }
+  }
+  paddingPaper:  {
+    key:  "66666"
+    value:  {
+      id:  66666
+      desc:  "p6p6p6p6"
+    }
+  }
+  copyPaper:  {
+    key:  "77777"
+    value:  {
+      id:  77777
+      desc:  "p7p7"
+    }
+  }
+  copyPaper:  {
+    key:  "88888"
+    value:  {
+      id:  88888
+      desc:  "p8p8"
+    }
   }
 }

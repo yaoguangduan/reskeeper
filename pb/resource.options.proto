@@ -36,7 +36,7 @@ extend google.protobuf.MessageOptions {
 }
 
 message ResourceFieldValidate {
-  optional bool no_null = 1;
+  optional bool not_null = 1;
   optional bool uniq = 2;
   optional string length = 3;
   optional string range = 4;
@@ -46,4 +46,5 @@ message ResourceFieldValidate {
 extend google.protobuf.FieldOptions {
   repeated ResourceFieldValidate res_validate= 50120;
   optional bool res_one_column = 50121;
+  optional bool res_use_msg_key = 50122;
 }

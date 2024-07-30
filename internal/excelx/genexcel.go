@@ -109,35 +109,60 @@ func flatFieldName(fullFieldFlat []interface{}, msgD protoreflect.MessageDescrip
 		f := msgD.Fields().Get(i)
 		if f.Kind() == protoreflect.MessageKind {
 			if f.IsMap() {
-				fullFieldFlat = append(fullFieldFlat, string(f.Name())+".mapKey")
-				mapValDesc := f.MapValue()
-				if mapValDesc.Kind() == protoreflect.MessageKind {
-					fullFieldFlat = flatFieldName(fullFieldFlat, mapValDesc.Message(), lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())))
+				var oneColumn = false
+				if proto.HasExtension(f.Options(), resproto.E_ResOneColumn) && proto.GetExtension(f.Options(), resproto.E_ResOneColumn).(bool) {
+					oneColumn = true
+				}
+				if f.MapValue().Kind() != protoreflect.MessageKind {
+					if oneColumn {
+						colName := string(f.Name()) + "{" + f.MapKey().Kind().String() + ";" + f.MapValue().Kind().String() + "}"
+						fullFieldFlat = append(fullFieldFlat, lo.If(prefix == "", colName).Else(prefix+"."+colName))
+					} else {
+						keyName := lo.If(prefix == "", string(f.Name())+".mapKey").Else(prefix + "." + string(f.Name()) + ".mapKey")
+						valName := lo.If(prefix == "", string(f.Name())+".mapVal").Else(prefix + "." + string(f.Name()) + ".mapVal")
+						fullFieldFlat = append(fullFieldFlat, keyName)
+						fullFieldFlat = append(fullFieldFlat, valName)
+					}
 				} else {
-					fullFieldFlat = append(fullFieldFlat, string(f.Name())+".mapVal")
+					if !proto.HasExtension(f.Options(), resproto.E_ResUseMsgKey) || !proto.GetExtension(f.Options(), resproto.E_ResUseMsgKey).(bool) {
+						keyName := lo.If(prefix == "", string(f.Name())+".mapKey").Else(prefix + "." + string(f.Name()) + ".mapKey")
+						fullFieldFlat = append(fullFieldFlat, keyName)
+					}
+					fullFieldFlat = flatOneMessage(fullFieldFlat, f, prefix)
 				}
 			} else {
-				fm := f.Message()
-				var noMsgMapList = true
-				fields := make([]string, 0)
-				for j := 0; j < fm.Fields().Len(); j++ {
-					fmf := fm.Fields().Get(j)
-					if fmf.IsMap() || fmf.IsList() || fmf.Kind() == protoreflect.MessageKind {
-						noMsgMapList = false
-						break
-					}
-					fields = append(fields, string(fmf.Name()))
-				}
-				if noMsgMapList && proto.HasExtension(f.Options(), resproto.E_ResOneColumn) && proto.GetExtension(f.Options(), resproto.E_ResOneColumn).(bool) {
-					quoteName := string(f.Name()) + "{" + strings.Join(fields, ";") + "}"
-					fullFieldFlat = append(fullFieldFlat, lo.If(prefix == "", quoteName).Else(prefix+"."+quoteName))
-				} else {
-					fullFieldFlat = flatFieldName(fullFieldFlat, f.Message(), lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())))
-				}
+				fullFieldFlat = flatOneMessage(fullFieldFlat, f, prefix)
 			}
 		} else {
 			fullFieldFlat = append(fullFieldFlat, lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())))
 		}
+	}
+	return fullFieldFlat
+}
+
+func flatOneMessage(fullFieldFlat []interface{}, f protoreflect.FieldDescriptor, prefix string) []interface{} {
+	var fm = f.Message()
+	if f.IsMap() {
+		fm = f.MapValue().Message()
+	}
+	var noMsgMapList = true
+	fields := make([]string, 0)
+	for j := 0; j < fm.Fields().Len(); j++ {
+		fmf := fm.Fields().Get(j)
+		if fmf.IsMap() || fmf.IsList() || fmf.Kind() == protoreflect.MessageKind {
+			noMsgMapList = false
+			break
+		}
+		fields = append(fields, string(fmf.Name()))
+	}
+	if noMsgMapList && proto.HasExtension(f.Options(), resproto.E_ResOneColumn) && proto.GetExtension(f.Options(), resproto.E_ResOneColumn).(bool) {
+		var quoteName = string(f.Name()) + "{" + strings.Join(fields, ";") + "}"
+		if f.IsMap() && (!proto.HasExtension(f.Options(), resproto.E_ResUseMsgKey) || !proto.GetExtension(f.Options(), resproto.E_ResUseMsgKey).(bool)) {
+			quoteName = string(f.Name()) + ".mapVal{" + strings.Join(fields, ";") + "}"
+		}
+		fullFieldFlat = append(fullFieldFlat, lo.If(prefix == "", quoteName).Else(prefix+"."+quoteName))
+	} else {
+		fullFieldFlat = flatFieldName(fullFieldFlat, fm, lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())))
 	}
 	return fullFieldFlat
 }

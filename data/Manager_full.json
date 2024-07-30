@@ -1,25 +1,41 @@
 {
   "mgr":  [
     {
-      "age":  12,
-      "name":  "CC",
-      "addr":  {
-        "name":  "shanghai",
-        "x":  36.32,
-        "y":  985.4
-      },
-      "assistants":  [
-        {
-          "name":  "AA",
-          "level":  23,
-          "direction":  "drink"
+      "name":  "JHHH",
+      "papers":  {
+        "1111":  {
+          "id":  1111,
+          "desc":  "papapa1"
         },
-        {
-          "name":  "jj",
-          "level":  22,
-          "direction":  "eat"
+        "22222":  {
+          "id":  22222,
+          "desc":  "papapapa2"
         }
-      ]
+      },
+      "oldPaper":  {
+        "33333":  {},
+        "44444":  {}
+      },
+      "paddingPaper":  {
+        "55555":  {
+          "id":  55555,
+          "desc":  "p5p5p5p5"
+        },
+        "66666":  {
+          "id":  66666,
+          "desc":  "p6p6p6p6"
+        }
+      },
+      "copyPaper":  {
+        "77777":  {
+          "id":  77777,
+          "desc":  "p7p7"
+        },
+        "88888":  {
+          "id":  88888,
+          "desc":  "p8p8"
+        }
+      }
     }
   ]
 }
