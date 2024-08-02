@@ -1,83 +1,83 @@
-mgr:  {
-  age:  23
-  name:  "ASDE"
-  addr:  {
-    name:  "BJ"
-    x:  23.2
-    y:  78.1
+mgr: {
+  age: 23
+  name: "ASDE"
+  addr: {
+    name: "BJ"
+    x: 23.2
+    y: 78.1
   }
-  assistants:  {
-    name:  "JJ"
-    level:  88
-    direction:  "health"
+  assistants: {
+    name: "JJ"
+    level: 88
+    direction: "health"
   }
-  assistants:  {
-    name:  "AA"
-    level:  90
-    direction:  "eat"
+  assistants: {
+    name: "AA"
+    level: 90
+    direction: "eat"
   }
-  actonFlow:  {
-    key:  1920
-    value:  "fight"
+  actonFlow: {
+    key: 1920
+    value: "fight"
   }
-  actonFlow:  {
-    key:  1990
-    value:  "eateat"
+  actonFlow: {
+    key: 1990
+    value: "eateat"
   }
-  papers:  {
-    key:  111
-    value:  {
-      id:  111
-      desc:  "p1p1"
+  papers: {
+    key: 111
+    value: {
+      id: 111
+      desc: "p1p1"
     }
   }
-  papers:  {
-    key:  222
-    value:  {
-      id:  222
-      desc:  "p2p2"
+  papers: {
+    key: 222
+    value: {
+      id: 222
+      desc: "p2p2"
     }
   }
-  oldPaper:  {
-    key:  "333"
-    value:  {
-      id:  333
-      desc:  "p3p3"
+  oldPaper: {
+    key: "333"
+    value: {
+      id: 333
+      desc: "p3p3"
     }
   }
-  oldPaper:  {
-    key:  "444"
-    value:  {
-      id:  444
-      desc:  "p4p4"
+  oldPaper: {
+    key: "444"
+    value: {
+      id: 444
+      desc: "p4p4"
     }
   }
-  paddingPaper:  {
-    key:  "555"
-    value:  {
-      id:  555
-      desc:  "p5p5"
+  paddingPaper: {
+    key: "555"
+    value: {
+      id: 555
+      desc: "p5p5"
     }
   }
-  paddingPaper:  {
-    key:  "666"
-    value:  {
-      id:  666
-      desc:  "p6p6"
+  paddingPaper: {
+    key: "666"
+    value: {
+      id: 666
+      desc: "p6p6"
     }
   }
-  copyPaper:  {
-    key:  "777"
-    value:  {
-      id:  777
-      desc:  "p7p7"
+  copyPaper: {
+    key: "777"
+    value: {
+      id: 777
+      desc: "p7p7"
     }
   }
-  copyPaper:  {
-    key:  "888"
-    value:  {
-      id:  888
-      desc:  "p8p8"
+  copyPaper: {
+    key: "888"
+    value: {
+      id: 888
+      desc: "p8p8"
     }
   }
 }

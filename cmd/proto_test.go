@@ -24,6 +24,6 @@ func TestGene(t *testing.T) {
 	//fmt.Println(&zooTable)
 	desc := zooTable.ProtoReflect().Descriptor()
 	mo := desc.Options().(*descriptorpb.MessageOptions)
-	e := proto.GetExtension(mo, resproto.E_ExcelAndSheetName)
+	e := proto.GetExtension(mo, resproto.E_ResMsgOpt)
 	fmt.Println(e)
 }

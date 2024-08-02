@@ -79,10 +79,8 @@ func protocGen(protoDirs []string) string {
 	fmt.Println(cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(out))
-		panic(err)
+		panic(fmt.Sprintf("protoc.exe failed: %v\n%s", err, out))
 	}
-	fmt.Println("Protobuf file set gen successfully.")
 	return dsName
 }
 

@@ -64,12 +64,12 @@ enum FoodType{
   Carbon = 2;
 }
 message Food {
-  optional string name = 1;
+  optional string name = 1[packed=true];
   optional FoodType ft = 2;
   optional float weight = 3;
 }
 message Animal {
-  option (res_msg_opt) = {msg_key:"id"};
+  option (res_msg_opt) = {msg_key:"name"};
   optional string name = 1;
   optional string detail = 2;
   optional uint64 count = 3;

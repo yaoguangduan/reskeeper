@@ -7,23 +7,25 @@ import (
 	"strings"
 )
 
-// 定义一个自定义标志类型
-type protoList []string
+type StringList []string
 
-func (s *protoList) String() string {
+func (s *StringList) String() string {
 	return strings.Join(*s, ",")
 }
 
-func (s *protoList) Set(value string) error {
+func (s *StringList) Set(value string) error {
 	*s = append(*s, value)
 	return nil
 }
 
 func main() {
-	var list protoList
-	flag.Var(&list, "pbs", "a list of proto dir")
+	var protoDirs StringList
+	var marshalExcelSheetList StringList
+	flag.Var(&protoDirs, "proto_path", "a list of proto dir")
+	genExcelAndSheet := flag.Bool("gen_excel", true, "generate missing excel files and sheets,default is true")
+	flag.Var(&marshalExcelSheetList, "marshal", "a list of excel name or excel#sheet")
 	flag.Parse()
 
-	internal.Gen(list)
+	internal.Gen(protoDirs, marshalExcelSheetList, *genExcelAndSheet)
 
 }

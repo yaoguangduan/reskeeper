@@ -10,6 +10,7 @@ import (
 	"github.com/yaoguangduan/reskeeper/resproto"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -45,10 +46,9 @@ func genByOneConfigProto(config configs.ResProtoFileConfig, files protox.ProtoFi
 			panic(fmt.Sprintf("table file %s state err", fp))
 		}
 		if err != nil {
-			//文件不存在
+			log.Printf("create excel %s", excelName)
 			newExcelWithConfig(excelName, tableConfigs, config, files)
 		} else {
-			//文件存在
 			adjustExcelWithConfig(excelName, tableConfigs, config, files)
 		}
 	}
@@ -61,7 +61,7 @@ func adjustExcelWithConfig(excel string, tables []configs.ResTableConfig, config
 	}
 	defer func() {
 		if err := recover(); err != nil {
-			panic(err)
+			log.Panicf("new sheet fail: %v", err)
 		} else {
 			lo.Must0(file.Save())
 		}
@@ -83,7 +83,7 @@ func newExcelWithConfig(excel string, tables []configs.ResTableConfig, config co
 
 	defer func() {
 		if err := recover(); err != nil {
-			panic(err)
+			log.Panicf("create excel/sheet %s err %v", excel, err)
 		} else {
 			_ = excelFile.DeleteSheet("Sheet1")
 			if err = excelFile.SaveAs(fp); err != nil {
@@ -97,6 +97,7 @@ func newExcelWithConfig(excel string, tables []configs.ResTableConfig, config co
 }
 
 func createTableSheetOnExcel(excelFile *excelize.File, table configs.ResTableConfig, files protox.ProtoFiles, config configs.ResProtoFileConfig) {
+	log.Printf("generate new sheet %s for excel %s", table.GetSheetName(), table.GetExcelName())
 	_, err := excelFile.NewSheet(table.GetSheetName())
 	if err != nil {
 		panic(err)

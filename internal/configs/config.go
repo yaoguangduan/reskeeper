@@ -69,8 +69,9 @@ func ResolveCfgFromFiles(list []string, files protox.ProtoFiles) ResProtoFiles {
 	files.RegFiles.RangeFiles(func(fd protoreflect.FileDescriptor) bool {
 		fo := fd.Options().(*descriptorpb.FileOptions)
 		if proto.HasExtension(fo, resproto.E_ResFileOpt) {
+			dir := findFileInDirectories(fd.Path(), list)
 			rfOpt := proto.GetExtension(fo, resproto.E_ResFileOpt).(*resproto.ResourceFileOpt)
-			resProtoFile := ResProtoFileConfig{FullName: string(fd.FullName())}
+			resProtoFile := ResProtoFileConfig{FullName: filepath.Join(dir, fd.Path())}
 			resProtoFile.Opt = rfOpt
 			for i := 0; i < fd.Messages().Len(); i++ {
 				msg := fd.Messages().Get(i)
@@ -86,10 +87,10 @@ func ResolveCfgFromFiles(list []string, files protox.ProtoFiles) ResProtoFiles {
 				resProtoFile.Tables = append(resProtoFile.Tables, resTable)
 			}
 			fmt.Println(fd.Path())
-			toPath := filepath.Join(findFileInDirectories(fd.Path(), list), *resProtoFile.Opt.ExcelPath)
+			toPath := filepath.Join(dir, *resProtoFile.Opt.ExcelPath)
 
 			resProtoFile.Opt.ExcelPath = proto.String(toPath)
-			resProtoFile.Opt.MarshalPath = proto.String(filepath.Join(findFileInDirectories(fd.Path(), list), *resProtoFile.Opt.MarshalPath))
+			resProtoFile.Opt.MarshalPath = proto.String(filepath.Join(dir, *resProtoFile.Opt.MarshalPath))
 			resProtoFiles = append(resProtoFiles, resProtoFile)
 		}
 		return true
