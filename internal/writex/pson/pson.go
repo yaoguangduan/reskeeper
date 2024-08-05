@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
+	"github.com/yaoguangduan/reskeeper/internal/protox"
 	"github.com/yaoguangduan/reskeeper/pbgen"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
@@ -29,21 +30,32 @@ func Decode(msg protoreflect.Message, raw string) {
 			log.Panicf("message no field key: %s", key)
 		}
 		if field.IsMap() {
-			if !strings.HasPrefix(cell, "{") {
-				log.Panicf("Invalid map field: %s", cell)
-			}
-			cell = strings.TrimSuffix(strings.TrimPrefix(cell, "{"), "}")
-			mapKV := splitField(cell)
-			for _, mkv := range mapKV {
-				idx = strings.Index(mkv, ":")
-				if idx == -1 {
-					log.Panicf("Invalid map key: %s", mkv)
+			if !strings.HasPrefix(cell, "{") || !strings.HasSuffix(cell, "}") {
+				if !strings.HasPrefix(cell, "[") || !strings.HasSuffix(cell, "]") {
+					log.Panicf("Invalid map field: %s", cell)
 				}
-				mapKey := strings.TrimSpace(mkv[:idx])
-				mapCell := strings.TrimSpace(mkv[idx+1:])
-				k := ValueOfField(field.MapKey(), mapKey)
-				v := ValueOfField(field.MapValue(), mapCell)
-				msg.Mutable(field).Map().Set(protoreflect.MapKey(k), v)
+				cell = strings.TrimSuffix(strings.TrimPrefix(cell, "["), "]")
+				mapValList := splitField(cell)
+				for _, mv := range mapValList {
+					v := ValueOfField(field.MapValue(), mv)
+					keyFieldDesc := protox.GetMsgKeyField(field.MapValue().Message())
+					k := protoreflect.MapKey(v.Message().Get(keyFieldDesc))
+					msg.Mutable(field).Map().Set(k, v)
+				}
+			} else {
+				cell = strings.TrimSuffix(strings.TrimPrefix(cell, "{"), "}")
+				mapKV := splitField(cell)
+				for _, mkv := range mapKV {
+					idx = strings.Index(mkv, ":")
+					if idx == -1 {
+						log.Panicf("Invalid map key: %s", mkv)
+					}
+					mapKey := strings.TrimSpace(mkv[:idx])
+					mapCell := strings.TrimSpace(mkv[idx+1:])
+					k := ValueOfField(field.MapKey(), mapKey)
+					v := ValueOfField(field.MapValue(), mapCell)
+					msg.Mutable(field).Map().Set(protoreflect.MapKey(k), v)
+				}
 			}
 		} else {
 			var cellList = []string{cell}
