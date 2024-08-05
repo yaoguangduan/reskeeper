@@ -1,21 +1,22 @@
 package writex
 
 import (
-	"encoding/base64"
 	"fmt"
 	"github.com/samber/lo"
-	"github.com/spf13/cast"
 	"github.com/xuri/excelize/v2"
 	"github.com/yaoguangduan/reskeeper/internal/configs"
 	"github.com/yaoguangduan/reskeeper/internal/protox"
+	"github.com/yaoguangduan/reskeeper/internal/writex/pson"
 	"github.com/yaoguangduan/reskeeper/resproto"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
+	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -25,8 +26,17 @@ func GenerateAll(config configs.ResProtoFiles, files protox.ProtoFiles, list []s
 	for _, resProto := range config {
 		for _, table := range resProto.Tables {
 			excelFullName := filepath.Join(resProto.Opt.GetExcelPath(), table.GetExcelName())
+			excelNameWithSheet := table.GetExcelName() + "#" + table.GetSheetName()
+			if lo.NoneBy(list, func(item string) bool {
+				if item == table.GetExcelName() || item == excelNameWithSheet {
+					return true
+				}
+				exp := regexp.MustCompile(item)
+				return exp.MatchString(table.GetExcelName()) || exp.MatchString(excelNameWithSheet)
+			}) {
+				continue
+			}
 			_, exist := excelTableMap[excelFullName]
-
 			if !exist {
 				excelTableMap[excelFullName] = []configs.ResTableConfig{}
 			}
@@ -42,6 +52,7 @@ func GenerateAll(config configs.ResProtoFiles, files protox.ProtoFiles, list []s
 }
 
 func GenerateOneExcel(excel string, tables []configs.ResTableConfig, s *sync.WaitGroup, files protox.ProtoFiles) {
+	log.Printf("start convert excel %s", excel)
 	file := lo.Must(excelize.OpenFile(excel))
 	defer func() {
 		lo.Must0(file.Close())
@@ -55,20 +66,24 @@ func GenerateOneExcel(excel string, tables []configs.ResTableConfig, s *sync.Wai
 		if idx == -1 {
 			panic(fmt.Sprintf("can not find table %s in excel", table.GetSheetName()))
 		}
-		GenerateOneSheet(file, table, files)
+		convertOneSheet(file, table, files)
 	}
 }
 
-func GenerateOneSheet(file *excelize.File, table configs.ResTableConfig, protos protox.ProtoFiles) {
+func convertOneSheet(file *excelize.File, table configs.ResTableConfig, protos protox.ProtoFiles) {
+	log.Printf("start convert excel sheet :%s %s", table.GetExcelName(), table.GetSheetName())
 	tableMessageDesc := protos.GetMessage(table.TableName)
 	messageDesc := protos.GetMessage(table.MessageName)
 	st := ParseToSheetTable(lo.Must(file.GetRows(table.GetSheetName())))
+	if messageDesc.Name() == "Zoo" {
+		log.Printf("oneof ;%s", messageDesc.Fields().ByName("belong"))
+	}
 	for _, tag := range table.Opt.GetMarshalTags() {
-		generateOneTable(tag, st, tableMessageDesc, messageDesc, table)
+		convertOneTable(tag, st, tableMessageDesc, messageDesc, table)
 	}
 }
 
-func generateOneTable(tag string, data SheetData, tableMsgDesc protoreflect.MessageDescriptor, msgDesc protoreflect.MessageDescriptor, table configs.ResTableConfig) {
+func convertOneTable(tag string, data SheetData, tableMsgDesc protoreflect.MessageDescriptor, msgDesc protoreflect.MessageDescriptor, table configs.ResTableConfig) {
 	tableMsg := dynamicpb.NewMessage(tableMsgDesc)
 	msgField := protox.GetFieldByMsgType(msgDesc, tableMsgDesc)
 	var msg protoreflect.Message = nil
@@ -127,9 +142,20 @@ func parseOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, da
 		return !strings.Contains(key, ".")
 	})
 	for _, colHead := range selfFields {
-		value := line[colHead.Col]
+		var value = line[colHead.Col]
+		if value == "" {
+			continue
+		}
 		field := desc.Fields().ByName(protoreflect.Name(colHead.Name))
-		if value == "" || protox.IgnoreCurField(tag, msgOpt, field) {
+		if field == nil && desc.Oneofs().ByName(protoreflect.Name(colHead.Name)) != nil {
+			fn := value[0:strings.Index(value, "{")]
+			field = desc.Fields().ByName(protoreflect.Name(fn))
+			value = strings.TrimSuffix(value[strings.Index(value, "{")+1:], "}")
+		}
+		if field == nil {
+			log.Panicf("can not find message field def:%s %s", msg.Descriptor().Name(), colHead.Name)
+		}
+		if protox.IgnoreCurField(tag, msgOpt, field) {
 			continue
 		}
 		if field.IsList() {
@@ -262,29 +288,8 @@ func getPrevNoEmptyVal(lines [][]string, line int, col int) string {
 }
 
 func getFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell string, head ColHead) protoreflect.Value {
-	var value protoreflect.Value
-	switch field.Kind() {
-	case protoreflect.StringKind:
-		value = protoreflect.ValueOfString(cell)
-	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
-		value = protoreflect.ValueOfUint32(cast.ToUint32(cell))
-	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
-		value = protoreflect.ValueOfInt32(cast.ToInt32(cell))
-	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
-		value = protoreflect.ValueOfUint64(cast.ToUint64(cell))
-	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
-		value = protoreflect.ValueOfInt64(cast.ToInt64(cell))
-	case protoreflect.BoolKind:
-		value = protoreflect.ValueOfBool(cast.ToBool(cell))
-	case protoreflect.DoubleKind:
-		value = protoreflect.ValueOfFloat64(cast.ToFloat64(cell))
-	case protoreflect.FloatKind:
-		value = protoreflect.ValueOfFloat32(cast.ToFloat32(cell))
-	case protoreflect.EnumKind:
-		value = protoreflect.ValueOfEnum(toEnumNumber(field, cell))
-	case protoreflect.BytesKind:
-		value = protoreflect.ValueOfBytes(lo.Must(base64.StdEncoding.DecodeString(cell)))
-	case protoreflect.MessageKind:
+	if field.Kind() == protoreflect.MessageKind {
+		var value protoreflect.Value
 		var fmd = field.Message()
 		if field.IsMap() {
 			fmd = field.MapValue().Message()
@@ -299,28 +304,25 @@ func getFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell s
 			return protoreflect.ValueOfMap(mapField)
 		}
 		tmp := dynamicpb.NewMessage(fmd)
-		sheetData := parseHeadAndCellToSheetData(head.NestFields, cell)
-		parseOneLineIntoMsg(tag, tmp, 0, sheetData)
-		if field.IsMap() {
-			parentMsg := field.Parent().(protoreflect.MessageDescriptor)
-			mapField := dynamicpb.NewMessage(parentMsg).Mutable(field).Map()
-			keyVal := tmp.Get(protox.GetMsgKeyField(fmd))
-			mapField.Set(protoreflect.MapKey(keyVal), protoreflect.ValueOfMessage(tmp))
-			value = protoreflect.ValueOfMap(mapField)
+		if head.NestFields != "" {
+			sheetData := parseHeadAndCellToSheetData(head.NestFields, cell)
+			parseOneLineIntoMsg(tag, tmp, 0, sheetData)
+			if field.IsMap() {
+				parentMsg := field.Parent().(protoreflect.MessageDescriptor)
+				mapField := dynamicpb.NewMessage(parentMsg).Mutable(field).Map()
+				keyVal := tmp.Get(protox.GetMsgKeyField(fmd))
+				mapField.Set(protoreflect.MapKey(keyVal), protoreflect.ValueOfMessage(tmp))
+				value = protoreflect.ValueOfMap(mapField)
+			} else {
+				value = protoreflect.ValueOfMessage(tmp)
+			}
 		} else {
+			pson.Decode(tmp, cell)
 			value = protoreflect.ValueOfMessage(tmp)
 		}
-	}
-	return value
-}
-
-func toEnumNumber(field protoreflect.FieldDescriptor, cell string) protoreflect.EnumNumber {
-	evs := field.Enum().Values()
-	i32, err := cast.ToInt32E(cell)
-	if err == nil {
-		return evs.ByNumber(protoreflect.EnumNumber(i32)).Number()
+		return value
 	} else {
-		return evs.ByName(protoreflect.Name(cell)).Number()
+		return pson.ValueOfField(field, cell)
 	}
 }
 

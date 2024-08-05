@@ -23,7 +23,7 @@ func main() {
 	var marshalExcelSheetList StringList
 	flag.Var(&protoDirs, "proto_path", "a list of proto dir")
 	genExcelAndSheet := flag.Bool("gen_excel", true, "generate missing excel files and sheets,default is true")
-	flag.Var(&marshalExcelSheetList, "marshal", "a list of excel name or excel#sheet")
+	flag.Var(&marshalExcelSheetList, "convert", "a list of excel name or excel#sheet")
 	flag.Parse()
 
 	internal.Gen(protoDirs, marshalExcelSheetList, *genExcelAndSheet)

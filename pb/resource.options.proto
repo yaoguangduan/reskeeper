@@ -28,7 +28,7 @@ message ResourceTableOpt {
 
 message ResourceMsgOpt {
   repeated string tag_ignore_fields = 1;
-  optional string msg_key = 2;
+  optional int32 msg_key = 2;
 }
 
 extend google.protobuf.MessageOptions {

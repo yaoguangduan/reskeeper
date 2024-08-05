@@ -23,7 +23,7 @@ func GetFieldByNumber(num int32, msg protoreflect.MessageDescriptor) protoreflec
 func GetMsgKeyField(msg protoreflect.MessageDescriptor) protoreflect.FieldDescriptor {
 	if proto.HasExtension(msg.Options(), resproto.E_ResMsgOpt) && proto.GetExtension(msg.Options(), resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt) != nil &&
 		proto.GetExtension(msg.Options(), resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt).MsgKey != nil {
-		return msg.Fields().ByName(protoreflect.Name(*proto.GetExtension(msg.Options(), resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt).MsgKey))
+		return msg.Fields().ByNumber(protoreflect.FieldNumber(*proto.GetExtension(msg.Options(), resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt).MsgKey))
 	}
 	for i := 0; i < msg.Fields().Len(); i++ {
 		f := msg.Fields().Get(i)
@@ -47,7 +47,7 @@ func GetFieldByMsgType(fieldMsg protoreflect.MessageDescriptor, msg protoreflect
 
 func GetMsgOptOrDefault(desc protoreflect.MessageDescriptor) *resproto.ResourceMsgOpt {
 	mo := desc.Options().(*descriptorpb.MessageOptions)
-	var msgOpt = &resproto.ResourceMsgOpt{TagIgnoreFields: make([]string, 0), MsgKey: proto.String(string(desc.Fields().Get(0).Name()))}
+	var msgOpt = &resproto.ResourceMsgOpt{TagIgnoreFields: make([]string, 0), MsgKey: proto.Int32(1)}
 	if proto.HasExtension(mo, resproto.E_ResMsgOpt) {
 		msgOpt = proto.GetExtension(mo, resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt)
 	}

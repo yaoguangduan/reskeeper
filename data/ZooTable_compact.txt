@@ -1,7 +1,42 @@
-zoos: {
-  id: 1
-  manager: {
-    name: "alen"
+zoos:  {
+  id:  111
+  manager:  {
+    age:  12
+    name:  "alen"
+    addr:  {
+      name:  "BJ"
+      x:  43.12
+      y:  98.41
+    }
+    assistants:  {
+      name:  "AA"
+      level:  99
+    }
+    assistants:  {
+      name:  "CC"
+      direction:  "health"
+    }
+    actonFlow:  {
+      key:  1998
+      value:  "eat"
+    }
+    actonFlow:  {
+      key:  2020
+      value:  "fly"
+    }
+    papers:  {
+      key:  9123987
+      value:  {
+        id:  81723
+        desc:  "woigwieqw"
+      }
+    }
+    papers:  {
+      key:  97617232
+      value:  {
+        id:  9872312
+        desc:  "owughqiweuyqw"
+      }
+    }
   }
-  level: Orange
 }
