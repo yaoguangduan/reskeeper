@@ -7,6 +7,7 @@ import (
 	"github.com/yaoguangduan/reskeeper/internal/configs"
 	"github.com/yaoguangduan/reskeeper/internal/protox"
 	"github.com/yaoguangduan/reskeeper/internal/writex/pson"
+	"github.com/yaoguangduan/reskeeper/internal/writex/validate"
 	"github.com/yaoguangduan/reskeeper/resproto"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
@@ -52,11 +53,12 @@ func GenerateAll(config configs.ResProtoFiles, files protox.ProtoFiles, list []s
 }
 
 func GenerateOneExcel(excel string, tables []configs.ResTableConfig, s *sync.WaitGroup, files protox.ProtoFiles) {
-	log.Printf("start convert excel %s", excel)
+	log.Printf("start convert excel : [%s]", excel)
 	file := lo.Must(excelize.OpenFile(excel))
 	defer func() {
 		lo.Must0(file.Close())
 		s.Done()
+		log.Printf("end convert excel : [%s]", excel)
 	}()
 	for _, table := range tables {
 		var idx = lo.Must(file.GetSheetIndex(table.GetSheetName()))
@@ -71,16 +73,14 @@ func GenerateOneExcel(excel string, tables []configs.ResTableConfig, s *sync.Wai
 }
 
 func convertOneSheet(file *excelize.File, table configs.ResTableConfig, protos protox.ProtoFiles) {
-	log.Printf("start convert excel sheet :%s %s", table.GetExcelName(), table.GetSheetName())
+	log.Printf("start convert excel sheet : %s#%s", table.GetExcelName(), table.GetSheetName())
 	tableMessageDesc := protos.GetMessage(table.TableName)
 	messageDesc := protos.GetMessage(table.MessageName)
 	st := ParseToSheetTable(lo.Must(file.GetRows(table.GetSheetName())))
-	if messageDesc.Name() == "Zoo" {
-		log.Printf("oneof ;%s", messageDesc.Fields().ByName("belong"))
-	}
 	for _, tag := range table.Opt.GetMarshalTags() {
 		convertOneTable(tag, st, tableMessageDesc, messageDesc, table)
 	}
+	log.Printf("end convert excel sheet : %s#%s", table.GetExcelName(), table.GetSheetName())
 }
 
 func convertOneTable(tag string, data SheetData, tableMsgDesc protoreflect.MessageDescriptor, msgDesc protoreflect.MessageDescriptor, table configs.ResTableConfig) {
@@ -93,6 +93,12 @@ func convertOneTable(tag string, data SheetData, tableMsgDesc protoreflect.Messa
 			msg = msgList.AppendMutable().Message()
 		}
 		parseOneLineIntoMsg(tag, msg, idx, data)
+	}
+	log.Printf("start to do resource validate %s#%s %s", table.GetExcelName(), table.GetSheetName(), tag)
+	s := validate.Validate(tag, tableMsg, tableMsgDesc, msgField)
+	if s != "" {
+		log.Printf("[VALIDATE] %s#%s[%s] validate result:", table.GetExcelName(), table.GetSheetName(), tag)
+		log.Printf(s)
 	}
 	var outPrefix = table.MessageName
 	if table.Opt.MarshalPrefix != nil {
@@ -317,12 +323,12 @@ func getFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell s
 				value = protoreflect.ValueOfMessage(tmp)
 			}
 		} else {
-			pson.Decode(tmp, cell)
+			pson.Decode(tag, tmp, cell)
 			value = protoreflect.ValueOfMessage(tmp)
 		}
 		return value
 	} else {
-		return pson.ValueOfField(field, cell)
+		return pson.ValueOfField(tag, field, cell)
 	}
 }
 

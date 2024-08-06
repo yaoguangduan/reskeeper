@@ -21,7 +21,7 @@ message Manager {
   optional int32 age = 1;
   optional string name = 2;
   optional AddressDetail addr = 3;
-  repeated Assistant assistants = 4[(res_one_column)=true];
+  repeated Assistant assistants = 4[(res_one_column)=true,(res_validate)={length:"3-5"}];
   map<int32,string> actonFlow = 5[(res_one_column)=true];
   map<int32,Paper> papers = 6[(res_one_column)=true,(res_use_msg_key)=true];
 }
@@ -61,6 +61,7 @@ enum FoodType{
   Carbon = 2;
 }
 message Food {
+  option (res_msg_opt) = {tag_ignore_fields:["compact:2-3"]};
   optional string name = 1;
   optional FoodType ft = 2;
   optional float weight = 3;
@@ -73,7 +74,7 @@ message Animal {
   repeated Food foods = 4;
 }
 message Zoo {
-  option (res_msg_opt) = {  tag_ignore_fields:["compact:2,4-9,11"], msg_key:1 };
+  option (res_msg_opt) = {  tag_ignore_fields:["compact:2,4-7,9,11"], msg_key:1 };
   optional int32 id = 1 [(res_validate)={not_null:true}];
   optional string desc = 2;
   optional Manager manager = 3;

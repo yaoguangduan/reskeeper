@@ -14,10 +14,11 @@ import (
 	"unicode/utf8"
 )
 
-func Decode(msg protoreflect.Message, raw string) {
+func Decode(tag string, msg protoreflect.Message, raw string) {
 	raw = strings.TrimSpace(raw)
 	raw = strings.TrimSuffix(strings.TrimPrefix(raw, "{"), "}")
 	fieldKV := splitField(raw)
+	var msgOpt = protox.GetMsgOptOrDefault(msg.Descriptor())
 	for _, kv := range fieldKV {
 		idx := strings.Index(kv, ":")
 		if idx == -1 {
@@ -29,6 +30,9 @@ func Decode(msg protoreflect.Message, raw string) {
 		if field == nil {
 			log.Panicf("message no field key: %s", key)
 		}
+		if protox.IgnoreCurField(tag, msgOpt, field) {
+			continue
+		}
 		if field.IsMap() {
 			if !strings.HasPrefix(cell, "{") || !strings.HasSuffix(cell, "}") {
 				if !strings.HasPrefix(cell, "[") || !strings.HasSuffix(cell, "]") {
@@ -37,7 +41,7 @@ func Decode(msg protoreflect.Message, raw string) {
 				cell = strings.TrimSuffix(strings.TrimPrefix(cell, "["), "]")
 				mapValList := splitField(cell)
 				for _, mv := range mapValList {
-					v := ValueOfField(field.MapValue(), mv)
+					v := ValueOfField(tag, field.MapValue(), mv)
 					keyFieldDesc := protox.GetMsgKeyField(field.MapValue().Message())
 					k := protoreflect.MapKey(v.Message().Get(keyFieldDesc))
 					msg.Mutable(field).Map().Set(k, v)
@@ -52,8 +56,8 @@ func Decode(msg protoreflect.Message, raw string) {
 					}
 					mapKey := strings.TrimSpace(mkv[:idx])
 					mapCell := strings.TrimSpace(mkv[idx+1:])
-					k := ValueOfField(field.MapKey(), mapKey)
-					v := ValueOfField(field.MapValue(), mapCell)
+					k := ValueOfField(tag, field.MapKey(), mapKey)
+					v := ValueOfField(tag, field.MapValue(), mapCell)
 					msg.Mutable(field).Map().Set(protoreflect.MapKey(k), v)
 				}
 			}
@@ -66,7 +70,7 @@ func Decode(msg protoreflect.Message, raw string) {
 				cellList = splitField(strings.TrimSuffix(strings.TrimPrefix(cell, "["), "]"))
 			}
 			for _, val := range cellList {
-				value := ValueOfField(field, val)
+				value := ValueOfField(tag, field, val)
 				if field.IsList() {
 					list := msg.Mutable(field).List()
 					list.Append(value)
@@ -78,7 +82,7 @@ func Decode(msg protoreflect.Message, raw string) {
 	}
 }
 
-func ValueOfField(field protoreflect.FieldDescriptor, cell string) protoreflect.Value {
+func ValueOfField(tag string, field protoreflect.FieldDescriptor, cell string) protoreflect.Value {
 	var value protoreflect.Value
 	switch field.Kind() {
 	case protoreflect.StringKind:
@@ -103,7 +107,7 @@ func ValueOfField(field protoreflect.FieldDescriptor, cell string) protoreflect.
 		value = protoreflect.ValueOfBytes(lo.Must(base64.StdEncoding.DecodeString(cell)))
 	case protoreflect.MessageKind:
 		msg := dynamicpb.NewMessage(field.Message())
-		Decode(msg, cell)
+		Decode(tag, msg, cell)
 		value = protoreflect.ValueOfMessage(msg)
 	}
 	return value
@@ -150,6 +154,6 @@ func main() {
 	p := pbgen.Zoo{}
 	zoo := p.ProtoReflect().Descriptor()
 	newZ := dynamicpb.NewMessage(zoo)
-	Decode(newZ, jsonStr)
+	Decode("", newZ, jsonStr)
 	fmt.Printf("%+v", newZ)
 }
