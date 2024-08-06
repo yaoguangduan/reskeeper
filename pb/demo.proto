@@ -70,13 +70,13 @@ message Animal {
   option (res_msg_opt) = {msg_key:1};
   optional string name = 1;
   optional string detail = 2[(res_validate)={not_null:true}];
-  optional uint64 count = 3;
+  optional int64 count = 3[(res_validate) = {range:"0-100000000"}];
   repeated Food foods = 4;
 }
 message Zoo {
   option (res_msg_opt) = {  tag_ignore_fields:["compact:2,4-7,9,11"], msg_key:1 };
   optional int32 id = 1 [(res_validate)={not_null:true}];
-  optional string desc = 2;
+  optional string desc = 2[(res_validate)={pattern:"^\\S*$"}];
   optional Manager manager = 3;
   oneof belong {
     Institute institute = 4;

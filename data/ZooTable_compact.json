@@ -1,20 +1,20 @@
 {
-  "zoos":  [
+  "zoos": [
     {
-      "id":  111,
-      "manager":  {
-        "name":  "alen"
+      "id": 111,
+      "manager": {
+        "name": "alen"
       },
-      "animals":  [
+      "animals": [
         {
-          "name":  "cat",
-          "count":  "230",
-          "foods":  [
+          "name": "cat",
+          "count": "-230",
+          "foods": [
             {
-              "name":  "CVV"
+              "name": "CVV"
             },
             {
-              "name":  "VVK"
+              "name": "VVK"
             }
           ]
         }

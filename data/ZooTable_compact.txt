@@ -1,16 +1,16 @@
-zoos:  {
-  id:  111
-  manager:  {
-    name:  "alen"
+zoos: {
+  id: 111
+  manager: {
+    name: "alen"
   }
-  animals:  {
-    name:  "cat"
-    count:  230
-    foods:  {
-      name:  "CVV"
+  animals: {
+    name: "cat"
+    count: -230
+    foods: {
+      name: "CVV"
     }
-    foods:  {
-      name:  "VVK"
+    foods: {
+      name: "VVK"
     }
   }
 }

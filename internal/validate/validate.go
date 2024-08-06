@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"log"
+	"regexp"
 	"strings"
 	"sync"
 )
@@ -100,6 +101,43 @@ func (v *validateInfo) validateField(parent protoreflect.Value, field protorefle
 			log.Printf("length validate only use for list and string:%s[%s]", desc.Name(), field.Name())
 		}
 	}
+	if validate.Range != nil {
+		beg := cast.ToInt64(strings.Split(*validate.Range, "-")[0])
+		end := cast.ToUint64(strings.Split(*validate.Range, "-")[1])
+		switch vv := value.Interface().(type) {
+		case int32:
+			if int64(vv) < beg || uint64(vv) >= end {
+				v.Append(ctx, "Range", field, vv, *validate.Range)
+			}
+		case uint32:
+			if int64(vv) < beg || uint64(vv) >= end {
+				v.Append(ctx, "Range", field, vv, *validate.Range)
+			}
+		case uint64:
+			if int64(vv) < beg || vv >= end {
+				v.Append(ctx, "Range", field, vv, *validate.Range)
+			}
+		case int64:
+			if vv < beg || uint64(vv) >= end {
+				v.Append(ctx, "Range", field, vv, *validate.Range)
+			}
+		default:
+			//skip
+		}
+	}
+	if validate.Pattern != nil {
+		cp, err := regexp.Compile(*validate.Pattern)
+		if err != nil {
+			log.Printf("regexp.Compile error:%s %v", *validate.Pattern, err)
+		} else {
+			switch vv := value.Interface().(type) {
+			case string:
+				if !cp.MatchString(vv) {
+					v.Append(ctx, "Pattern", field, vv, *validate.Pattern)
+				}
+			}
+		}
+	}
 }
 
 func (v *validateInfo) validateMessage(value protoreflect.Value, descriptor protoreflect.MessageDescriptor, ctx configs.CvtContext) {
@@ -114,6 +152,7 @@ func (v *validateInfo) validateMessage(value protoreflect.Value, descriptor prot
 
 func (v *validateInfo) PrintValidateResult() {
 	sb := strings.Builder{}
+	sb.WriteString("=======================================\r\n")
 	sb.WriteString("RESOURCE VALIDATE RESULT:\r\n")
 	for key, val := range v.info {
 		sb.WriteString(key + ":\r\n")
@@ -121,5 +160,6 @@ func (v *validateInfo) PrintValidateResult() {
 			sb.WriteString("  " + vv)
 		}
 	}
+	sb.WriteString("=======================================\r\n")
 	fmt.Println(sb.String())
 }
