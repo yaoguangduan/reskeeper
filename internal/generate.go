@@ -2,9 +2,9 @@ package internal
 
 import (
 	"github.com/yaoguangduan/reskeeper/internal/configs"
+	"github.com/yaoguangduan/reskeeper/internal/convert"
 	"github.com/yaoguangduan/reskeeper/internal/excelx"
 	"github.com/yaoguangduan/reskeeper/internal/protox"
-	"github.com/yaoguangduan/reskeeper/internal/writex"
 	"log"
 )
 
@@ -21,5 +21,5 @@ func Gen(pbDirList []string, excelSheetNameList []string, excelSheetGen bool) {
 		log.Printf("skip marshal data,because of marshal args empty")
 		return
 	}
-	writex.GenerateAll(config, protoFiles, excelSheetNameList)
+	convert.GenerateAll(config, protoFiles, excelSheetNameList)
 }

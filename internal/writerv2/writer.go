@@ -2,19 +2,19 @@ package writerv2
 
 import (
 	"github.com/samber/lo"
-	"github.com/yaoguangduan/reskeeper/internal/writex"
+	"github.com/yaoguangduan/reskeeper/internal/configs"
 	"strings"
 )
 
-func parse(data writex.SheetData) {
+func parse(data configs.SheetData) {
 	for _, line := range data.Lines {
 		lineMap := make(map[string]interface{})
 		convertLineToNestMap(line, lineMap, data.Heads)
 	}
 }
 
-func convertLineToNestMap(line []string, lineMap map[string]interface{}, heads map[string]writex.ColHead) {
-	selfFields := lo.PickBy(heads, func(key string, value writex.ColHead) bool {
+func convertLineToNestMap(line []string, lineMap map[string]interface{}, heads map[string]configs.ColHead) {
+	selfFields := lo.PickBy(heads, func(key string, value configs.ColHead) bool {
 		return !strings.Contains(key, ".")
 	})
 	for key, colH := range selfFields {
@@ -23,7 +23,7 @@ func convertLineToNestMap(line []string, lineMap map[string]interface{}, heads m
 			lineMap[key] = line[colH.Col]
 		}
 	}
-	commonPrefixMap := make(map[string]map[string]writex.ColHead)
+	commonPrefixMap := make(map[string]map[string]configs.ColHead)
 	for _, colHead := range heads {
 		if !strings.Contains(colHead.Name, ".") {
 			continue
@@ -31,9 +31,9 @@ func convertLineToNestMap(line []string, lineMap map[string]interface{}, heads m
 		prefix := colHead.Name[0:strings.Index(colHead.Name, ".")]
 		suffix := colHead.Name[strings.Index(colHead.Name, ".")+1:]
 		if _, ok := commonPrefixMap[prefix]; !ok {
-			commonPrefixMap[prefix] = make(map[string]writex.ColHead)
+			commonPrefixMap[prefix] = make(map[string]configs.ColHead)
 		}
-		commonPrefixMap[prefix][suffix] = writex.ColHead{Name: suffix, Col: colHead.Col, NestFields: colHead.NestFields}
+		commonPrefixMap[prefix][suffix] = configs.ColHead{Name: suffix, Col: colHead.Col, NestFields: colHead.NestFields}
 	}
 	for prefix, ncm := range commonPrefixMap {
 		var hasValue = false

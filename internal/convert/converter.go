@@ -1,13 +1,13 @@
-package writex
+package convert
 
 import (
 	"fmt"
 	"github.com/samber/lo"
 	"github.com/xuri/excelize/v2"
 	"github.com/yaoguangduan/reskeeper/internal/configs"
+	"github.com/yaoguangduan/reskeeper/internal/convert/pson"
 	"github.com/yaoguangduan/reskeeper/internal/protox"
-	"github.com/yaoguangduan/reskeeper/internal/writex/pson"
-	"github.com/yaoguangduan/reskeeper/internal/writex/validate"
+	"github.com/yaoguangduan/reskeeper/internal/validate"
 	"github.com/yaoguangduan/reskeeper/resproto"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
@@ -50,6 +50,7 @@ func GenerateAll(config configs.ResProtoFiles, files protox.ProtoFiles, list []s
 		go GenerateOneExcel(excel, table, &wait, files)
 	}
 	wait.Wait()
+	validate.Validator.PrintValidateResult()
 }
 
 func GenerateOneExcel(excel string, tables []configs.ResTableConfig, s *sync.WaitGroup, files protox.ProtoFiles) {
@@ -76,16 +77,22 @@ func convertOneSheet(file *excelize.File, table configs.ResTableConfig, protos p
 	log.Printf("start convert excel sheet : %s#%s", table.GetExcelName(), table.GetSheetName())
 	tableMessageDesc := protos.GetMessage(table.TableName)
 	messageDesc := protos.GetMessage(table.MessageName)
-	st := ParseToSheetTable(lo.Must(file.GetRows(table.GetSheetName())))
+	st := configs.ParseToSheetTable(lo.Must(file.GetRows(table.GetSheetName())))
+	ctx := configs.CvtContext{Table: table, Protos: protos, Sheet: st, TableDesc: tableMessageDesc, DataDesc: messageDesc}
 	for _, tag := range table.Opt.GetMarshalTags() {
-		convertOneTable(tag, st, tableMessageDesc, messageDesc, table)
+		ctx.Tag = tag
+		convertOneTable(ctx)
 	}
 	log.Printf("end convert excel sheet : %s#%s", table.GetExcelName(), table.GetSheetName())
 }
 
-func convertOneTable(tag string, data SheetData, tableMsgDesc protoreflect.MessageDescriptor, msgDesc protoreflect.MessageDescriptor, table configs.ResTableConfig) {
-	tableMsg := dynamicpb.NewMessage(tableMsgDesc)
-	msgField := protox.GetFieldByMsgType(msgDesc, tableMsgDesc)
+func convertOneTable(ctx configs.CvtContext) {
+	data := ctx.Sheet
+	msgDesc := ctx.DataDesc
+	tag := ctx.Tag
+	table := ctx.Table
+	tableMsg := dynamicpb.NewMessage(ctx.TableDesc)
+	msgField := protox.GetFieldByMsgType(ctx.DataDesc, ctx.TableDesc)
 	var msg protoreflect.Message = nil
 	msgList := tableMsg.Mutable(msgField).List()
 	for idx, line := range data.Lines {
@@ -95,11 +102,8 @@ func convertOneTable(tag string, data SheetData, tableMsgDesc protoreflect.Messa
 		parseOneLineIntoMsg(tag, msg, idx, data)
 	}
 	log.Printf("start to do resource validate %s#%s %s", table.GetExcelName(), table.GetSheetName(), tag)
-	s := validate.Validate(tag, tableMsg, tableMsgDesc, msgField)
-	if s != "" {
-		log.Printf("[VALIDATE] %s#%s[%s] validate result:", table.GetExcelName(), table.GetSheetName(), tag)
-		log.Printf(s)
-	}
+	validate.Validator.Validate(tableMsg, ctx)
+
 	var outPrefix = table.MessageName
 	if table.Opt.MarshalPrefix != nil {
 		outPrefix = *table.Opt.MarshalPrefix
@@ -133,18 +137,18 @@ func convertOneTable(tag string, data SheetData, tableMsgDesc protoreflect.Messa
 }
 
 // desc 里number=1得field的值不是空
-func needCreateNewMsg(desc protoreflect.MessageDescriptor, nameColMap map[string]ColHead, line []string) bool {
+func needCreateNewMsg(desc protoreflect.MessageDescriptor, nameColMap map[string]configs.ColHead, line []string) bool {
 	keyFieldDesc := protox.GetMsgKeyField(desc)
 	keyName := string(keyFieldDesc.Name())
 	keyValue := line[nameColMap[keyName].Col]
 	return keyValue != ""
 }
 
-func parseOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, data SheetData) {
+func parseOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, data configs.SheetData) {
 	desc := msg.Descriptor()
 	msgOpt := protox.GetMsgOptOrDefault(desc)
 	line := data.Lines[lineIndex]
-	selfFields := lo.PickBy(data.Heads, func(key string, value ColHead) bool {
+	selfFields := lo.PickBy(data.Heads, func(key string, value configs.ColHead) bool {
 		return !strings.Contains(key, ".")
 	})
 	for _, colHead := range selfFields {
@@ -183,9 +187,9 @@ func parseOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, da
 	processNestedFields(tag, msg, lineIndex, data, desc, msgOpt)
 }
 
-func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, data SheetData, desc protoreflect.MessageDescriptor, msgOpt *resproto.ResourceMsgOpt) {
+func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, data configs.SheetData, desc protoreflect.MessageDescriptor, msgOpt *resproto.ResourceMsgOpt) {
 	line := data.Lines[lineIndex]
-	commonPrefixMap := make(map[string]map[string]ColHead)
+	commonPrefixMap := make(map[string]map[string]configs.ColHead)
 	for _, colHead := range data.Heads {
 		if !strings.Contains(colHead.Name, ".") {
 			continue
@@ -193,9 +197,9 @@ func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, da
 		prefix := colHead.Name[0:strings.Index(colHead.Name, ".")]
 		suffix := colHead.Name[strings.Index(colHead.Name, ".")+1:]
 		if _, ok := commonPrefixMap[prefix]; !ok {
-			commonPrefixMap[prefix] = make(map[string]ColHead)
+			commonPrefixMap[prefix] = make(map[string]configs.ColHead)
 		}
-		commonPrefixMap[prefix][suffix] = ColHead{Name: suffix, Col: colHead.Col, NestFields: colHead.NestFields}
+		commonPrefixMap[prefix][suffix] = configs.ColHead{Name: suffix, Col: colHead.Col, NestFields: colHead.NestFields}
 	}
 	for prefix, ncm := range commonPrefixMap {
 		field := desc.Fields().ByName(protoreflect.Name(prefix))
@@ -219,7 +223,7 @@ func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, da
 				if exist {
 					parseOneLineIntoMsg(tag, valVal.Message(), 0, parseHeadAndCellToSheetData(valHead.NestFields, line[valHead.Col]))
 				} else {
-					parseOneLineIntoMsg(tag, valVal.Message(), lineIndex, SheetData{Heads: ncm, Lines: data.Lines})
+					parseOneLineIntoMsg(tag, valVal.Message(), lineIndex, configs.SheetData{Heads: ncm, Lines: data.Lines})
 				}
 			} else {
 				valHead, exist := ncm["map-val"]
@@ -233,31 +237,31 @@ func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, da
 		} else if field.IsList() {
 			list := msg.Mutable(field).List()
 			if needCreateNewMsg(field.Message(), ncm, line) {
-				parseOneLineIntoMsg(tag, list.AppendMutable().Message(), lineIndex, SheetData{Heads: ncm, Lines: data.Lines})
+				parseOneLineIntoMsg(tag, list.AppendMutable().Message(), lineIndex, configs.SheetData{Heads: ncm, Lines: data.Lines})
 			} else {
-				parseOneLineIntoMsg(tag, list.Get(list.Len()-1).Message(), lineIndex, SheetData{Heads: ncm, Lines: data.Lines})
+				parseOneLineIntoMsg(tag, list.Get(list.Len()-1).Message(), lineIndex, configs.SheetData{Heads: ncm, Lines: data.Lines})
 			}
 		} else {
-			parseOneLineIntoMsg(tag, msg.Mutable(field).Message(), lineIndex, SheetData{Heads: ncm, Lines: data.Lines})
+			parseOneLineIntoMsg(tag, msg.Mutable(field).Message(), lineIndex, configs.SheetData{Heads: ncm, Lines: data.Lines})
 		}
 	}
 }
 
-func parseHeadAndCellToSheetData(fields, values string) SheetData {
+func parseHeadAndCellToSheetData(fields, values string) configs.SheetData {
 	fieldHead := strings.Split(strings.TrimSuffix(strings.TrimPrefix(fields, "{"), "}"), ";")
 	currentLine := strings.Split(values, ";")
 	if len(fieldHead) != len(currentLine) {
 		panic(fmt.Sprintf("cell value error msg %v field not match value %s", fields, values))
 	}
-	nameColMap := make(map[string]ColHead)
+	nameColMap := make(map[string]configs.ColHead)
 	for i, f := range fieldHead {
-		nameColMap[f] = ColHead{Name: f, Col: i, NestFields: ""}
+		nameColMap[f] = configs.ColHead{Name: f, Col: i, NestFields: ""}
 	}
-	return SheetData{Heads: nameColMap, Lines: [][]string{currentLine}}
+	return configs.SheetData{Heads: nameColMap, Lines: [][]string{currentLine}}
 }
 
-func getMapKeyFromLine(tag string, ncm map[string]ColHead, data SheetData, lineIndex int, field protoreflect.FieldDescriptor) protoreflect.MapKey {
-	var headCol = ColHead{Col: -1}
+func getMapKeyFromLine(tag string, ncm map[string]configs.ColHead, data configs.SheetData, lineIndex int, field protoreflect.FieldDescriptor) protoreflect.MapKey {
+	var headCol = configs.ColHead{Col: -1}
 	if _, exist := ncm["map-key"]; exist {
 		headCol = ncm["map-key"]
 	} else {
@@ -293,7 +297,7 @@ func getPrevNoEmptyVal(lines [][]string, line int, col int) string {
 	return ""
 }
 
-func getFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell string, head ColHead) protoreflect.Value {
+func getFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell string, head configs.ColHead) protoreflect.Value {
 	if field.Kind() == protoreflect.MessageKind {
 		var value protoreflect.Value
 		var fmd = field.Message()

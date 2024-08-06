@@ -69,7 +69,7 @@ message Food {
 message Animal {
   option (res_msg_opt) = {msg_key:1};
   optional string name = 1;
-  optional string detail = 2;
+  optional string detail = 2[(res_validate)={not_null:true}];
   optional uint64 count = 3;
   repeated Food foods = 4;
 }

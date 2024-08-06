@@ -1,9 +1,10 @@
-package writex
+package configs
 
 import (
 	"fmt"
 	"github.com/samber/lo"
-	"slices"
+	"github.com/yaoguangduan/reskeeper/internal/protox"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"strings"
 )
 
@@ -67,30 +68,11 @@ func parseCellValueToColHead(cell string) ColHead {
 	}
 }
 
-func removeIgnoreColAndGetHeadLines(data [][]string) ([][]string, map[int]string) {
-	if len(data) == 0 {
-		return data, map[int]string{}
-	}
-
-	var colsToRemove = make([]int, 1)
-	var headLines = make(map[int]string)
-	for colIndex, value := range data[0] {
-		if strings.HasPrefix(value, "#") {
-			colsToRemove = append(colsToRemove, colIndex)
-		}
-	}
-	var newData [][]string
-	for idx, row := range data {
-		if strings.HasPrefix(row[0], "$head:") {
-			headLines[idx] = row[0][6:]
-		}
-		var newRow []string
-		for colIndex, value := range row {
-			if !slices.Contains(colsToRemove, colIndex) {
-				newRow = append(newRow, value)
-			}
-		}
-		newData = append(newData, newRow)
-	}
-	return newData, headLines
+type CvtContext struct {
+	Table     ResTableConfig
+	Sheet     SheetData
+	Tag       string
+	TableDesc protoreflect.MessageDescriptor
+	DataDesc  protoreflect.MessageDescriptor
+	Protos    protox.ProtoFiles
 }
