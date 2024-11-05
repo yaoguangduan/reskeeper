@@ -20,18 +20,12 @@ func GetFieldByNumber(num int32, msg protoreflect.MessageDescriptor) protoreflec
 	panic(fmt.Sprintf("can not find field by number: %d %s", num, msg))
 }
 
-func GetMsgKeyField(msg protoreflect.MessageDescriptor) protoreflect.FieldDescriptor {
-	if proto.HasExtension(msg.Options(), resproto.E_ResMsgOpt) && proto.GetExtension(msg.Options(), resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt) != nil &&
-		proto.GetExtension(msg.Options(), resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt).MsgKey != nil {
-		return msg.Fields().ByNumber(protoreflect.FieldNumber(*proto.GetExtension(msg.Options(), resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt).MsgKey))
+func GetMsgKeyField(msg protoreflect.MessageDescriptor) *protoreflect.FieldDescriptor {
+	if proto.HasExtension(msg.Options(), resproto.E_ResMsgKey) {
+		fd := msg.Fields().ByNumber(protoreflect.FieldNumber(proto.GetExtension(msg.Options(), resproto.E_ResMsgKey).(int32)))
+		return &fd
 	}
-	for i := 0; i < msg.Fields().Len(); i++ {
-		f := msg.Fields().Get(i)
-		if int32(f.Number()) == 1 {
-			return f
-		}
-	}
-	panic(fmt.Sprintf("can not find field by number: %d %s", 1, msg))
+	return nil
 }
 
 func GetFieldByMsgType(fieldMsg protoreflect.MessageDescriptor, msg protoreflect.MessageDescriptor) protoreflect.FieldDescriptor {
@@ -45,28 +39,20 @@ func GetFieldByMsgType(fieldMsg protoreflect.MessageDescriptor, msg protoreflect
 
 }
 
-func GetMsgOptOrDefault(desc protoreflect.MessageDescriptor) *resproto.ResourceMsgOpt {
+func GetMsgTagIgnoreInfo(desc protoreflect.MessageDescriptor) []string {
 	mo := desc.Options().(*descriptorpb.MessageOptions)
-	var msgOpt = &resproto.ResourceMsgOpt{TagIgnoreFields: make([]string, 0), MsgKey: proto.Int32(1)}
-	if proto.HasExtension(mo, resproto.E_ResMsgOpt) {
-		msgOpt = proto.GetExtension(mo, resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt)
-	}
-	return msgOpt
-}
-func GetTableOptOrDefault(desc protoreflect.MessageDescriptor) *resproto.ResourceTableOpt {
-	mo := desc.Options().(*descriptorpb.MessageOptions)
-	var msgOpt = &resproto.ResourceTableOpt{}
-	if proto.HasExtension(mo, resproto.E_ResTableOpt) {
-		msgOpt = proto.GetExtension(mo, resproto.E_ResTableOpt).(*resproto.ResourceTableOpt)
+	var msgOpt = make([]string, 0)
+	if proto.HasExtension(mo, resproto.E_ResTagIgnores) {
+		msgOpt = proto.GetExtension(mo, resproto.E_ResTagIgnores).([]string)
 	}
 	return msgOpt
 }
 
-func IgnoreCurField(tag string, opt *resproto.ResourceMsgOpt, field protoreflect.FieldDescriptor) bool {
-	if len(opt.TagIgnoreFields) == 0 {
+func IgnoreCurField(tag string, tagIgnoreInfo []string, field protoreflect.FieldDescriptor) bool {
+	if len(tagIgnoreInfo) == 0 {
 		return false
 	}
-	for _, tagInfo := range opt.TagIgnoreFields {
+	for _, tagInfo := range tagIgnoreInfo {
 		tagSplit := strings.Split(tagInfo, ":")
 		if tagSplit[0] != tag {
 			continue
@@ -115,4 +101,24 @@ func isNumberInRange(num int, ranges [][2]int) bool {
 		}
 	}
 	return false
+}
+
+func GetFieldCommentOption(fd protoreflect.FieldDescriptor) string {
+	fo := fd.Options()
+	if proto.HasExtension(fo, resproto.E_ResComment) {
+		return proto.GetExtension(fo, resproto.E_ResComment).(string)
+	}
+	return ""
+}
+
+func GetFieldEnumByAlias(field protoreflect.FieldDescriptor, cell string) protoreflect.EnumNumber {
+	values := field.Enum().Values()
+	for i := 0; i < values.Len(); i++ {
+		ev := values.Get(i)
+		evo := ev.Options()
+		if proto.HasExtension(evo, resproto.E_ResAlias) && proto.GetExtension(evo, resproto.E_ResAlias).(string) == cell {
+			return ev.Number()
+		}
+	}
+	return 0
 }

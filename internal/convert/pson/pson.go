@@ -6,10 +6,10 @@ import (
 	"github.com/samber/lo"
 	"github.com/spf13/cast"
 	"github.com/yaoguangduan/reskeeper/internal/protox"
-	"github.com/yaoguangduan/reskeeper/pbgen"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
 	"log"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -18,7 +18,6 @@ func Decode(tag string, msg protoreflect.Message, raw string) {
 	raw = strings.TrimSpace(raw)
 	raw = strings.TrimSuffix(strings.TrimPrefix(raw, "{"), "}")
 	fieldKV := splitField(raw)
-	var msgOpt = protox.GetMsgOptOrDefault(msg.Descriptor())
 	for _, kv := range fieldKV {
 		idx := strings.Index(kv, ":")
 		if idx == -1 {
@@ -30,7 +29,7 @@ func Decode(tag string, msg protoreflect.Message, raw string) {
 		if field == nil {
 			log.Panicf("message no field key: %s", key)
 		}
-		if protox.IgnoreCurField(tag, msgOpt, field) {
+		if protox.IgnoreCurField(tag, protox.GetMsgTagIgnoreInfo(msg.Descriptor()), field) {
 			continue
 		}
 		if field.IsMap() {
@@ -43,7 +42,10 @@ func Decode(tag string, msg protoreflect.Message, raw string) {
 				for _, mv := range mapValList {
 					v := ValueOfField(tag, field.MapValue(), mv)
 					keyFieldDesc := protox.GetMsgKeyField(field.MapValue().Message())
-					k := protoreflect.MapKey(v.Message().Get(keyFieldDesc))
+					if keyFieldDesc == nil {
+						panic(fmt.Sprintf("map field must contains key: %s", field))
+					}
+					k := protoreflect.MapKey(v.Message().Get(*keyFieldDesc))
 					msg.Mutable(field).Map().Set(k, v)
 				}
 			} else {
@@ -88,19 +90,52 @@ func ValueOfField(tag string, field protoreflect.FieldDescriptor, cell string) p
 	case protoreflect.StringKind:
 		value = protoreflect.ValueOfString(cell)
 	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
-		value = protoreflect.ValueOfUint32(cast.ToUint32(cell))
+		u64, err := strconv.ParseUint(cell, 10, 64)
+		if err != nil {
+			panic(fmt.Sprintf("%s invalid uint32 value: %s,err %e", field.Name(), cell, err))
+		}
+		if u64 > 4294967295 {
+			panic(fmt.Sprintf("cell value %s overflow 4294967295", cell))
+		}
+		value = protoreflect.ValueOfUint32(uint32(u64))
 	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
-		value = protoreflect.ValueOfInt32(cast.ToInt32(cell))
+		i64, err := strconv.ParseInt(cell, 10, 64)
+		if err != nil {
+			panic(fmt.Sprintf("%s invalid int32 value: %s,err %e", field.Name(), cell, err))
+		}
+		if i64 < -2147483648 || i64 > 2147483647 {
+			panic(fmt.Sprintf("cell value %s not in -2147483648 and 2147483647", cell))
+		}
+		value = protoreflect.ValueOfInt32(int32(i64))
 	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
-		value = protoreflect.ValueOfUint64(cast.ToUint64(cell))
+		u64, err := strconv.ParseUint(cell, 10, 64)
+		if err != nil {
+			panic(fmt.Sprintf("%s invalid uint64 value: %s,err %e", field.Name(), cell, err))
+		}
+		value = protoreflect.ValueOfUint64(u64)
 	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
-		value = protoreflect.ValueOfInt64(cast.ToInt64(cell))
+		i64, err := strconv.ParseInt(cell, 10, 64)
+		if err != nil {
+			panic(fmt.Sprintf("%s invalid int64 value: %s,err %e", field.Name(), cell, err))
+		}
+		value = protoreflect.ValueOfInt64(i64)
 	case protoreflect.BoolKind:
-		value = protoreflect.ValueOfBool(cast.ToBool(cell))
+		value = protoreflect.ValueOfBool(lo.Must(cast.ToBoolE(cell)))
 	case protoreflect.DoubleKind:
-		value = protoreflect.ValueOfFloat64(cast.ToFloat64(cell))
+		f64, err := strconv.ParseFloat(cell, 64)
+		if err != nil {
+			panic(fmt.Sprintf("%s invalid float64 value: %s,err %e", field.Name(), cell, err))
+		}
+		value = protoreflect.ValueOfFloat64(f64)
 	case protoreflect.FloatKind:
-		value = protoreflect.ValueOfFloat32(cast.ToFloat32(cell))
+		f64, err := strconv.ParseFloat(cell, 64)
+		if err != nil {
+			panic(fmt.Sprintf("%s invalid float32 value: %s,err %e", field.Name(), cell, err))
+		}
+		if f64 < -float64(^uint32(0)>>1)-1 || f64 > float64(^uint32(0)>>1) {
+			panic(fmt.Sprintf("cell value %s not in %v and %v", cell, -float64(^uint32(0)>>1)-1, f64 > float64(^uint32(0)>>1)))
+		}
+		value = protoreflect.ValueOfFloat32(float32(f64))
 	case protoreflect.EnumKind:
 		value = protoreflect.ValueOfEnum(toEnumNumber(field, cell))
 	case protoreflect.BytesKind:
@@ -119,7 +154,17 @@ func toEnumNumber(field protoreflect.FieldDescriptor, cell string) protoreflect.
 	if err == nil {
 		return evs.ByNumber(protoreflect.EnumNumber(i32)).Number()
 	} else {
-		return evs.ByName(protoreflect.Name(cell)).Number()
+		ev := evs.ByName(protoreflect.Name(cell))
+		if ev != nil {
+			return ev.Number()
+		} else {
+			eu := protox.GetFieldEnumByAlias(field, cell)
+			if eu == 0 {
+				panic(fmt.Sprintf("invalid enum value: %s", cell))
+			} else {
+				return eu
+			}
+		}
 	}
 }
 
@@ -150,10 +195,14 @@ func splitField(raw string) []string {
 }
 
 func main() {
-	jsonStr := `{id:198,desc:a big zoo,manager:{age:12,name:makama,assistants:   [{name:AA,level:12},{name:CC,direction:health}]}}`
-	p := pbgen.Zoo{}
-	zoo := p.ProtoReflect().Descriptor()
-	newZ := dynamicpb.NewMessage(zoo)
-	Decode("", newZ, jsonStr)
-	fmt.Printf("%+v", newZ)
+	//jsonStr := `{age:198,name:a big zoo,pets:[{type:doge,age:12}]}`
+	//p := pbgen.User{}
+	//zoo := p.ProtoReflect().Descriptor()
+	//newZ := dynamicpb.NewMessage(zoo)
+	//Decode("", newZ, jsonStr)
+	//fmt.Printf("%+v", newZ)
+	_, err := cast.ToInt32E(8888888173212)
+	if err != nil {
+		panic(err)
+	}
 }

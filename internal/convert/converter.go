@@ -7,8 +7,6 @@ import (
 	"github.com/yaoguangduan/reskeeper/internal/configs"
 	"github.com/yaoguangduan/reskeeper/internal/convert/pson"
 	"github.com/yaoguangduan/reskeeper/internal/protox"
-	"github.com/yaoguangduan/reskeeper/internal/validate"
-	"github.com/yaoguangduan/reskeeper/resproto"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -26,10 +24,10 @@ func GenerateAll(config configs.ResProtoFiles, files protox.ProtoFiles, list []s
 	excelTableMap := make(map[string][]configs.ResTableConfig)
 	for _, resProto := range config {
 		for _, table := range resProto.Tables {
-			excelFullName := filepath.Join(resProto.Opt.GetExcelPath(), table.GetExcelName())
+			excelFullName := table.GetExcelName()
 			excelNameWithSheet := table.GetExcelName() + "#" + table.GetSheetName()
 			if lo.NoneBy(list, func(item string) bool {
-				if item == table.GetExcelName() || item == excelNameWithSheet {
+				if item == table.GetExcelName() || item == excelNameWithSheet || item == table.GetSheetName() {
 					return true
 				}
 				exp := regexp.MustCompile(item)
@@ -50,7 +48,7 @@ func GenerateAll(config configs.ResProtoFiles, files protox.ProtoFiles, list []s
 		go GenerateOneExcel(excel, table, &wait, files)
 	}
 	wait.Wait()
-	validate.Validator.PrintValidateResult()
+	//validate.Validator.PrintValidateResult()
 }
 
 func GenerateOneExcel(excel string, tables []configs.ResTableConfig, s *sync.WaitGroup, files protox.ProtoFiles) {
@@ -79,7 +77,7 @@ func convertOneSheet(file *excelize.File, table configs.ResTableConfig, protos p
 	messageDesc := protos.GetMessage(table.MessageName)
 	st := configs.ParseToSheetTable(lo.Must(file.GetRows(table.GetSheetName())))
 	ctx := configs.CvtContext{Table: table, Protos: protos, Sheet: st, TableDesc: tableMessageDesc, DataDesc: messageDesc}
-	for _, tag := range table.Opt.GetMarshalTags() {
+	for _, tag := range table.GetGenerateTags() {
 		ctx.Tag = tag
 		convertOneTable(ctx)
 	}
@@ -88,7 +86,6 @@ func convertOneSheet(file *excelize.File, table configs.ResTableConfig, protos p
 
 func convertOneTable(ctx configs.CvtContext) {
 	data := ctx.Sheet
-	msgDesc := ctx.DataDesc
 	tag := ctx.Tag
 	table := ctx.Table
 	tableMsg := dynamicpb.NewMessage(ctx.TableDesc)
@@ -96,36 +93,36 @@ func convertOneTable(ctx configs.CvtContext) {
 	var msg protoreflect.Message = nil
 	msgList := tableMsg.Mutable(msgField).List()
 	for idx, line := range data.Lines {
-		if needCreateNewMsg(msgDesc, data.Heads, line) { //一条新消息
+		if needCreateNewMsg(data.Heads, line, ctx.DataDesc) { //一条新消息
 			msg = msgList.AppendMutable().Message()
 		}
 		parseOneLineIntoMsg(tag, msg, idx, data)
 	}
-	log.Printf("start to do resource validate %s#%s %s", table.GetExcelName(), table.GetSheetName(), tag)
-	validate.Validator.Validate(tableMsg, ctx)
+	//log.Printf("start to do resource validate %s#%s %s", table.GetExcelName(), table.GetSheetName(), tag)
+	//validate.Validator.Validate(tableMsg, ctx)
 
 	var outPrefix = table.MessageName
-	if table.Opt.MarshalPrefix != nil {
-		outPrefix = *table.Opt.MarshalPrefix
+	if table.GenerateName != "" {
+		outPrefix = table.GenerateName
 	}
-	var formats = table.Belong.Opt.GetMarshalFormats()
-	filename := filepath.Join(table.Belong.Opt.GetMarshalPath(), outPrefix+"_"+tag+".")
+	var formats = table.Belong.GetMarshalFormats()
+	filename := filepath.Join(table.Belong.GetGeneratePath(), outPrefix+"."+tag+".")
 	if formats != nil && len(formats) > 0 {
 		for _, format := range formats {
 			switch format {
-			case resproto.ResMarshalFormat_Bin:
+			case "bin":
 				marshal, err := proto.Marshal(tableMsg)
 				if err != nil {
 					panic(err)
 				}
 				lo.Must0(os.WriteFile(filename+"bin", marshal, os.ModePerm))
-			case resproto.ResMarshalFormat_Json:
+			case "json":
 				marshal, err := protojson.MarshalOptions{Multiline: true, Indent: "  "}.Marshal(tableMsg)
 				if err != nil {
 					panic(err)
 				}
 				lo.Must0(os.WriteFile(filename+"json", marshal, os.ModePerm))
-			case resproto.ResMarshalFormat_Text:
+			case "txt":
 				marshal, err := prototext.MarshalOptions{Multiline: true, Indent: "  "}.Marshal(tableMsg)
 				if err != nil {
 					panic(err)
@@ -136,17 +133,24 @@ func convertOneTable(ctx configs.CvtContext) {
 	}
 }
 
-// desc 里number=1得field的值不是空
-func needCreateNewMsg(desc protoreflect.MessageDescriptor, nameColMap map[string]configs.ColHead, line []string) bool {
-	keyFieldDesc := protox.GetMsgKeyField(desc)
-	keyName := string(keyFieldDesc.Name())
-	keyValue := line[nameColMap[keyName].Col]
-	return keyValue != ""
+// 任何一个非repeated和map的字段有值，则需要创建新message
+func needCreateNewMsg(nameColMap map[string]configs.ColHead, line []string, descriptor protoreflect.MessageDescriptor) bool {
+	selfFields := lo.PickBy(nameColMap, func(key string, value configs.ColHead) bool {
+		return !strings.Contains(key, ".") && !descriptor.Fields().ByName(protoreflect.Name(key)).IsMap() && !descriptor.Fields().ByName(protoreflect.Name(key)).IsList()
+	})
+	var newMsg = false
+	for _, colHead := range selfFields {
+		var value = line[colHead.Col]
+		if value != "" {
+			newMsg = true
+			break
+		}
+	}
+	return newMsg
 }
 
 func parseOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, data configs.SheetData) {
 	desc := msg.Descriptor()
-	msgOpt := protox.GetMsgOptOrDefault(desc)
 	line := data.Lines[lineIndex]
 	selfFields := lo.PickBy(data.Heads, func(key string, value configs.ColHead) bool {
 		return !strings.Contains(key, ".")
@@ -165,11 +169,12 @@ func parseOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, da
 		if field == nil {
 			log.Panicf("can not find message field def:%s %s", msg.Descriptor().Name(), colHead.Name)
 		}
-		if protox.IgnoreCurField(tag, msgOpt, field) {
+		if protox.IgnoreCurField(tag, protox.GetMsgTagIgnoreInfo(desc), field) {
 			continue
 		}
 		if field.IsList() {
 			list := msg.Mutable(field).List()
+			log.Println("qiwqe", field.Name(), value)
 			for _, val := range strings.Split(value, "|") {
 				list.Append(getFieldValueFromStr(tag, field, val, colHead))
 			}
@@ -184,10 +189,10 @@ func parseOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, da
 			msg.Set(field, getFieldValueFromStr(tag, field, value, colHead))
 		}
 	}
-	processNestedFields(tag, msg, lineIndex, data, desc, msgOpt)
+	processNestedFields(tag, msg, lineIndex, data, desc)
 }
 
-func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, data configs.SheetData, desc protoreflect.MessageDescriptor, msgOpt *resproto.ResourceMsgOpt) {
+func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, data configs.SheetData, desc protoreflect.MessageDescriptor) {
 	line := data.Lines[lineIndex]
 	commonPrefixMap := make(map[string]map[string]configs.ColHead)
 	for _, colHead := range data.Heads {
@@ -210,7 +215,7 @@ func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, da
 				break
 			}
 		}
-		if !hasValue || protox.IgnoreCurField(tag, msgOpt, field) {
+		if !hasValue || protox.IgnoreCurField(tag, protox.GetMsgTagIgnoreInfo(desc), field) {
 			continue
 		}
 		if field.IsMap() {
@@ -236,7 +241,7 @@ func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, da
 			}
 		} else if field.IsList() {
 			list := msg.Mutable(field).List()
-			if needCreateNewMsg(field.Message(), ncm, line) {
+			if needCreateNewMsg(ncm, line, field.Message()) {
 				parseOneLineIntoMsg(tag, list.AppendMutable().Message(), lineIndex, configs.SheetData{Heads: ncm, Lines: data.Lines})
 			} else {
 				parseOneLineIntoMsg(tag, list.Get(list.Len()-1).Message(), lineIndex, configs.SheetData{Heads: ncm, Lines: data.Lines})
@@ -262,15 +267,17 @@ func parseHeadAndCellToSheetData(fields, values string) configs.SheetData {
 
 func getMapKeyFromLine(tag string, ncm map[string]configs.ColHead, data configs.SheetData, lineIndex int, field protoreflect.FieldDescriptor) protoreflect.MapKey {
 	var headCol = configs.ColHead{Col: -1}
-	if _, exist := ncm["map-key"]; exist {
-		headCol = ncm["map-key"]
+	if _, exist := ncm["key"]; exist {
+		headCol = ncm["key"]
 	} else {
 		if field.MapValue().Kind() != protoreflect.MessageKind {
-			panic(fmt.Sprintf("missing map key for line :%d,msg:%v", lineIndex, field.Name()))
 		}
 		mapValDesc := field.MapValue().Message()
 		keyField := protox.GetMsgKeyField(mapValDesc)
-		keyColHead, ok := ncm[string(keyField.Name())]
+		if keyField == nil {
+			panic(fmt.Sprintf("missing map key for line :%d,msg:%v", lineIndex, field.Name()))
+		}
+		keyColHead, ok := ncm[string((*keyField).Name())]
 		if !ok {
 			panic(fmt.Sprintf("missing map key for line :%d,msg:%v", lineIndex, field.Name()))
 		}
@@ -283,7 +290,7 @@ func getMapKeyFromLine(tag string, ncm map[string]configs.ColHead, data configs.
 	if keyStr == "" {
 		panic(fmt.Sprintf("missing map key for line :%d,msg:%v", lineIndex, field.Name()))
 	}
-	delete(ncm, "map-key")
+	delete(ncm, "key")
 	return protoreflect.MapKey(getFieldValueFromStr(tag, field.MapKey(), keyStr, headCol))
 }
 
@@ -304,7 +311,7 @@ func getFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell s
 		if field.IsMap() {
 			fmd = field.MapValue().Message()
 		}
-		line := strings.Split(cell, ";")
+		line := strings.Split(cell, ":")
 		if field.IsMap() && field.MapValue().Kind() != protoreflect.MessageKind {
 			parentMsg := field.Parent().(protoreflect.MessageDescriptor)
 			mapField := dynamicpb.NewMessage(parentMsg).Mutable(field).Map()
@@ -320,7 +327,7 @@ func getFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell s
 			if field.IsMap() {
 				parentMsg := field.Parent().(protoreflect.MessageDescriptor)
 				mapField := dynamicpb.NewMessage(parentMsg).Mutable(field).Map()
-				keyVal := tmp.Get(protox.GetMsgKeyField(fmd))
+				keyVal := tmp.Get(*protox.GetMsgKeyField(fmd)) //todo
 				mapField.Set(protoreflect.MapKey(keyVal), protoreflect.ValueOfMessage(tmp))
 				value = protoreflect.ValueOfMap(mapField)
 			} else {

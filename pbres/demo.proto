@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+import "resource_opt.proto";
+
+option go_package = "../pbgen";
+option (res_excel_path) = "../excel/测试样例.xlsx";
+option (res_generate_path) = "../data";
+option (res_generate_json) = true;
+option (res_generate_txt) = true;
+option (res_generate_tags) = "full";
+option (res_generate_tags) = "desc";
+enum VipLevel {
+  Level0 = 0 [(res_alias)="普通"];
+  Level1 = 1 [(res_alias)="白金"];
+  Level2 = 2 [(res_alias)="钻石"];
+}
+
+message Friend {
+  option (res_msg_key) = 1;
+  optional string name = 1;
+  optional uint64 beginTime = 2;
+  optional float intimacy = 3;
+}
+message PetFood {
+  optional string type = 1;
+  optional int32 weight = 2;
+}
+message Pet {
+  option (res_tag_ignores) = "desc:3-999";
+  optional string type = 1;
+  optional int32 age = 2;
+  optional int32 cost = 3;
+  repeated PetFood foods = 4;
+}
+message WorkRecord {
+  optional string time = 1;
+  optional int32 rate = 2;
+}
+message WorkInfo {
+  optional string desc = 1;
+  optional int32 reward = 2;
+  optional int64 spendTime = 3;
+  repeated WorkRecord records  = 4;
+}
+message Football {
+  optional string addr = 1;
+  optional int32 count = 2;
+}
+message GamePlay {
+  optional string type = 1;
+  optional float cost = 2;
+}
+message User {
+  option (res_tag_ignores) = "desc:3,5-7,9-999";
+  option (res_msg_key) = 1;
+  optional string name = 1;
+  optional uint32 age = 2;
+  optional float weight = 3 [(res_comment)="用户体重"];
+  optional double location = 4;
+  optional bool isStudent = 5;
+  optional VipLevel vipLevel = 6;
+  repeated string lovers = 7;
+  repeated Pet pets = 8;
+  map<string,Friend> friends = 9;
+  map<string,float> recipes = 10;
+  map<int64,WorkInfo> works = 11;
+  oneof activity {
+    Football football = 12;
+    GamePlay game = 13;
+    string other = 14;
+  }
+}
+message UserTable {
+  option (res_generate_name) = "user";
+  option (res_sheet_name) = "用户列表";
+  repeated User users = 1;
+}

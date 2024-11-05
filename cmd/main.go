@@ -21,9 +21,9 @@ func (s *StringList) Set(value string) error {
 func main() {
 	var protoDirs StringList
 	var marshalExcelSheetList StringList
-	flag.Var(&protoDirs, "proto_path", "a list of proto dir")
-	genExcelAndSheet := flag.Bool("gen_excel", true, "generate missing excel files and sheets,default is true")
-	flag.Var(&marshalExcelSheetList, "convert", "a list of excel name or excel#sheet")
+	flag.Var(&protoDirs, "P", "a list of proto dir")
+	genExcelAndSheet := flag.Bool("E", true, "generate missing excel files and sheets,default is true")
+	flag.Var(&marshalExcelSheetList, "C", "a list of excel name or excel#sheet")
 	flag.Parse()
 
 	internal.Gen(protoDirs, marshalExcelSheetList, *genExcelAndSheet)

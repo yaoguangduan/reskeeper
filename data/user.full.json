@@ -1,0 +1,136 @@
+{
+  "users": [
+    {
+      "name": "alen",
+      "age": 12,
+      "weight": 55.6,
+      "location": 4656.23423,
+      "isStudent": true,
+      "vipLevel": "Level2",
+      "lovers": [
+        "eat",
+        "learn"
+      ],
+      "pets": [
+        {
+          "type": "dog",
+          "age": 2,
+          "cost": 23,
+          "foods": [
+            {
+              "type": "water",
+              "weight": 22
+            },
+            {
+              "type": "carbon"
+            }
+          ]
+        },
+        {
+          "type": "cat",
+          "age": 1,
+          "cost": 33,
+          "foods": [
+            {
+              "type": "cookie",
+              "weight": 11
+            },
+            {
+              "type": "meat",
+              "weight": 5
+            }
+          ]
+        }
+      ],
+      "friends": {
+        "corner jd": {
+          "name": "corner jd",
+          "beginTime": "98213213123",
+          "intimacy": 77
+        },
+        "john": {
+          "name": "john",
+          "beginTime": "9287467163",
+          "intimacy": 87
+        }
+      },
+      "recipes": {
+        "meat": 20,
+        "water": 23.3
+      },
+      "works": {
+        "8888812322": {
+          "desc": "ppt",
+          "reward": 12011,
+          "spendTime": "33",
+          "records": [
+            {
+              "time": "45627",
+              "rate": 33
+            },
+            {
+              "time": "44959",
+              "rate": 80
+            }
+          ]
+        },
+        "8888832132": {
+          "desc": "office",
+          "reward": 12012,
+          "spendTime": "43"
+        }
+      },
+      "other": "jump dance"
+    },
+    {
+      "name": "kali",
+      "age": 11,
+      "weight": 45.44,
+      "location": 3242.211,
+      "isStudent": false,
+      "vipLevel": "Level1",
+      "lovers": [
+        "drink",
+        "play",
+        "sleep"
+      ],
+      "pets": [
+        {
+          "type": "dragon",
+          "age": 233,
+          "cost": 6589,
+          "foods": [
+            {
+              "type": "meat",
+              "weight": 666
+            }
+          ]
+        }
+      ],
+      "friends": {
+        "harris": {
+          "name": "harris",
+          "beginTime": "98172631723",
+          "intimacy": 56
+        }
+      },
+      "works": {
+        "8888898213": {
+          "desc": "social",
+          "reward": 12014,
+          "spendTime": "55",
+          "records": [
+            {
+              "time": "45261",
+              "rate": 70
+            }
+          ]
+        }
+      },
+      "football": {
+        "addr": "WSKX",
+        "count": 8
+      }
+    }
+  ]
+}

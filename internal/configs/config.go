@@ -9,33 +9,56 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 type ResProtoFiles []ResProtoFileConfig
 
 type ResProtoFileConfig struct {
-	FullName string
-	Opt      *resproto.ResourceFileOpt
-	Tables   []ResTableConfig
+	FullName     string
+	Tables       []ResTableConfig
+	ExcelPath    string
+	GeneratePath string
+	GenerateTags []string
+	GenerateJson bool
+	GenerateTxt  bool
 }
+
+func (c ResProtoFileConfig) GetMarshalFormats() []string {
+	formats := []string{"bin"}
+	if c.GenerateJson {
+		formats = append(formats, "json")
+	}
+	if c.GenerateTxt {
+		formats = append(formats, "txt")
+	}
+	return formats
+}
+
+func (c ResProtoFileConfig) GetGeneratePath() string {
+	return c.GeneratePath
+}
+
 type ResTableConfig struct {
-	TableName   string
-	MessageName string
-	Opt         *resproto.ResourceTableOpt
-	Belong      ResProtoFileConfig
+	TableName    string
+	MessageName  string
+	Belong       ResProtoFileConfig
+	SheetName    string
+	GenerateName string
 }
 
 func (t ResTableConfig) ExcelWithFieldType() bool {
-	return t.Opt.ExcelWithFieldType != nil && *t.Opt.ExcelWithFieldType
+	return false
+}
+func (t ResTableConfig) GetGenerateTags() []string {
+	return t.Belong.GenerateTags
 }
 
 func (t ResTableConfig) GetExcelName() string {
-	return t.Opt.GetExcelAndSheetName()[0:strings.Index(t.Opt.GetExcelAndSheetName(), "#")]
+	return t.Belong.ExcelPath
 }
 
 func (t ResTableConfig) GetSheetName() string {
-	return t.Opt.GetExcelAndSheetName()[strings.Index(t.Opt.GetExcelAndSheetName(), "#")+1:]
+	return t.SheetName
 }
 
 // HeadLineRangeAndSuffix 表示表头行范围和后缀
@@ -68,41 +91,46 @@ func ResolveCfgFromFiles(list []string, files protox.ProtoFiles) ResProtoFiles {
 	resProtoFiles := ResProtoFiles{}
 	files.RegFiles.RangeFiles(func(fd protoreflect.FileDescriptor) bool {
 		fo := fd.Options().(*descriptorpb.FileOptions)
-		if proto.HasExtension(fo, resproto.E_ResFileOpt) {
-			dir := findFileInDirectories(fd.Path(), list)
-			rfOpt := proto.GetExtension(fo, resproto.E_ResFileOpt).(*resproto.ResourceFileOpt)
-			resProtoFile := ResProtoFileConfig{FullName: filepath.Join(dir, fd.Path())}
-			resProtoFile.Opt = rfOpt
+		if !proto.HasExtension(fo, resproto.E_ResExcelPath) || !proto.HasExtension(fo, resproto.E_ResGeneratePath) {
+			return true
+		}
+		resProtoFile := ResProtoFileConfig{}
+		dir := findFileInDirectories(fd.Path(), list)
+		resProtoFile.FullName = filepath.Join(dir, fd.Path())
+		if proto.HasExtension(fo, resproto.E_ResExcelPath) {
+			resProtoFile.ExcelPath = filepath.Join(dir, proto.GetExtension(fo, resproto.E_ResExcelPath).(string))
+		}
+		if proto.HasExtension(fo, resproto.E_ResGeneratePath) {
+			resProtoFile.GeneratePath = filepath.Join(dir, proto.GetExtension(fo, resproto.E_ResGeneratePath).(string))
+		}
+		if proto.HasExtension(fo, resproto.E_ResGenerateTags) {
+			resProtoFile.GenerateTags = proto.GetExtension(fo, resproto.E_ResGenerateTags).([]string)
+		}
+		if proto.HasExtension(fo, resproto.E_ResGenerateJson) {
+			resProtoFile.GenerateJson = proto.GetExtension(fo, resproto.E_ResGenerateJson).(bool)
+		}
+		if proto.HasExtension(fo, resproto.E_ResGenerateTxt) {
+			resProtoFile.GenerateTxt = proto.GetExtension(fo, resproto.E_ResGenerateTxt).(bool)
+		}
+		if proto.HasExtension(fo, resproto.E_ResExcelPath) && proto.HasExtension(fo, resproto.E_ResGeneratePath) {
 			for i := 0; i < fd.Messages().Len(); i++ {
 				msg := fd.Messages().Get(i)
 				mo := msg.Options().(*descriptorpb.MessageOptions)
-				if !proto.HasExtension(mo, resproto.E_ResTableOpt) {
-					continue
+				if proto.HasExtension(mo, resproto.E_ResSheetName) && proto.HasExtension(mo, resproto.E_ResGenerateName) {
+					resTable := ResTableConfig{Belong: resProtoFile}
+					resTable.TableName = string(msg.Name())
+					inner := msg.Fields().Get(0)
+					resTable.MessageName = string(inner.Message().Name())
+					resTable.SheetName = proto.GetExtension(mo, resproto.E_ResSheetName).(string)
+					resTable.GenerateName = proto.GetExtension(mo, resproto.E_ResGenerateName).(string)
+					resProtoFile.Tables = append(resProtoFile.Tables, resTable)
 				}
-				resTable := ResTableConfig{Belong: resProtoFile}
-				resTable.TableName = string(msg.Name())
-				resTable.Opt = proto.GetExtension(mo, resproto.E_ResTableOpt).(*resproto.ResourceTableOpt)
-				inner := msg.Fields().ByNumber(1)
-				resTable.MessageName = string(inner.Message().Name())
-				resProtoFile.Tables = append(resProtoFile.Tables, resTable)
 			}
-			fmt.Println(fd.Path())
-			toPath := filepath.Join(dir, *resProtoFile.Opt.ExcelPath)
-
-			resProtoFile.Opt.ExcelPath = proto.String(toPath)
-			resProtoFile.Opt.MarshalPath = proto.String(filepath.Join(dir, *resProtoFile.Opt.MarshalPath))
 			resProtoFiles = append(resProtoFiles, resProtoFile)
 		}
 		return true
 	})
 	return resProtoFiles
-}
-
-func GetMsgOpt(fm protoreflect.MessageDescriptor) *resproto.ResourceMsgOpt {
-	if proto.HasExtension(fm.Options(), resproto.E_ResMsgOpt) {
-		return proto.GetExtension(fm.Options(), resproto.E_ResMsgOpt).(*resproto.ResourceMsgOpt)
-	}
-	return nil
 }
 
 // findFileInDirectories 在多个目录中查找包含特定文件的目录

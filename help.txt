@@ -1,2 +1,4 @@
- ./protoc.exe --go_out=./pbgen --descriptor_set_out=desc_set_1722056453.pb --proto_path=pb --proto_path=pb/google/protobuf pb/*.proto pb/google/protobuf/*.proto
-./protoc.exe --go_out=./resproto --descriptor_set_out=desc_set_1722056453.pb --proto_path=pb --proto_path=pb/google/protobuf pb/*.proto pb/google/protobuf/*.proto
+ ./protoc.exe --go_out=./pbgen --descriptor_set_out=desc_set_1722056453.pb --proto_path=pb --proto_path=pb/google/protobuf --proto_path=pbres .\pbres\demo.proto
+
+.\reskeeper.exe -P  .\pbres\ -C 测试样例.xlsx
+ go build -o reskeeper.exe .\cmd\

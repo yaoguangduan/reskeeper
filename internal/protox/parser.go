@@ -1,6 +1,7 @@
 package protox
 
 import (
+	"embed"
 	"fmt"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/proto"
@@ -8,6 +9,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -15,6 +17,9 @@ import (
 	"time"
 	"unicode"
 )
+
+//go:embed \*
+var resProtoFile embed.FS
 
 type ProtoFiles struct {
 	RegFiles *protoregistry.Files
@@ -39,9 +44,6 @@ func (p ProtoFiles) GetMessage(msgName string) protoreflect.MessageDescriptor {
 
 func ParseProtoSet(config []string) ProtoFiles {
 	name := protocGen(config)
-	defer func() {
-		lo.Must0(os.Remove(name))
-	}()
 	pf := readProtoDescSet(name)
 	return pf
 }
@@ -49,6 +51,9 @@ func ParseProtoSet(config []string) ProtoFiles {
 var keyValidTypes = []protoreflect.Kind{protoreflect.BoolKind, protoreflect.EnumKind, protoreflect.Int32Kind, protoreflect.Uint32Kind, protoreflect.Sint32Kind, protoreflect.Int64Kind, protoreflect.Uint64Kind, protoreflect.Sint64Kind, protoreflect.StringKind}
 
 func readProtoDescSet(name string) ProtoFiles {
+	defer func() {
+		lo.Must0(os.Remove(name))
+	}()
 	//读取描述符集文件
 	data, err := os.ReadFile(name)
 	if err != nil {
@@ -67,14 +72,43 @@ func readProtoDescSet(name string) ProtoFiles {
 }
 
 func protocGen(protoDirs []string) string {
+	file, err := resProtoFile.Open("resource_opt.proto")
+	if err != nil {
+		panic(err)
+	}
+	_, err = io.Copy(lo.Must(os.Create("resource_opt.proto")), file)
+	lo.Must0(file.Close())
+	if err != nil {
+		panic(err)
+	}
+	file, err = resProtoFile.Open("descriptor.proto")
+	if err != nil {
+		panic(err)
+	}
+	_, err = io.Copy(lo.Must(os.Create("descriptor.proto")), file)
+	lo.Must0(file.Close())
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		for os.Remove("descriptor.proto") != nil {
+
+		}
+		for os.Remove("resource_opt.proto") != nil {
+
+		}
+	}()
 	seconds := time.Now().Unix()
 	dsName := fmt.Sprintf("desc_set_%d.pb", seconds)
 	arg1List := lo.Map(protoDirs, func(item string, index int) string {
 		return fmt.Sprintf("--proto_path=%s", filepath.ToSlash(filepath.Clean(item)))
 	})
+	arg1List = append(arg1List, "--proto_path=.")
 	arg2List := lo.Map(protoDirs, func(item string, index int) string {
 		return filepath.ToSlash(filepath.Join(filepath.ToSlash(filepath.Clean(item)), "*.proto"))
 	})
+	arg2List = append(arg2List, "descriptor.proto")
+	arg2List = append(arg2List, "resource_opt.proto")
 	cmd := exec.Command("./protoc.exe", append([]string{"--descriptor_set_out=" + dsName}, append(arg1List, arg2List...)...)...)
 	fmt.Println(cmd.String())
 	out, err := cmd.CombinedOutput()

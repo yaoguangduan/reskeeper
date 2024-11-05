@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+option go_package="github.com/yaoguangduan/reskeeper/resproto";
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.FileOptions {
+  optional string res_excel_path = 50100;
+  optional string res_generate_path = 50101;
+  optional bool res_generate_json = 50102;
+  optional bool res_generate_txt = 50103;
+  repeated string res_generate_tags = 50104;
+}
+
+extend google.protobuf.MessageOptions {
+  optional string res_sheet_name = 50110;
+  optional string res_generate_name = 50111;
+  optional int32 res_msg_key = 50112;
+  repeated string res_tag_ignores = 50113;
+}
+extend google.protobuf.FieldOptions {
+  optional string res_comment = 50120;
+}
+extend google.protobuf.EnumValueOptions {
+  optional string res_alias = 50130;
+}

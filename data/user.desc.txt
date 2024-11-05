@@ -1,0 +1,22 @@
+users: {
+  name: "alen"
+  age: 12
+  location: 4656.23423
+  pets: {
+    type: "dog"
+    age: 2
+  }
+  pets: {
+    type: "cat"
+    age: 1
+  }
+}
+users: {
+  name: "kali"
+  age: 11
+  location: 3242.211
+  pets: {
+    type: "dragon"
+    age: 233
+  }
+}
