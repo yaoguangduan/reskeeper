@@ -7,6 +7,8 @@ import (
 	"github.com/yaoguangduan/reskeeper/internal/configs"
 	"github.com/yaoguangduan/reskeeper/internal/excelx/styles"
 	"github.com/yaoguangduan/reskeeper/internal/protox"
+	"github.com/yaoguangduan/reskeeper/resproto"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"log"
 	"os"
@@ -108,7 +110,7 @@ func adjustColumnOnSheet(file *excelize.File, table configs.ResTableConfig, file
 	if err != nil {
 		panic(err)
 	}
-	fullFieldFlat := flatFieldName(nil, files.GetMessage(table.MessageName), "", table)
+	fullFieldFlat := flatFieldName(nil, files.GetMessage(table.MessageName), "", table, "")
 	missing := make([]int, 0)
 	for i, cell := range fullFieldFlat {
 		if slices.Contains(firstRow, cell.name) || slices.Contains(firstRow, "#"+cell.name) {
@@ -152,7 +154,7 @@ func createTableSheetOnExcel(excelFile *excelize.File, table configs.ResTableCon
 	msgD := files.GetMessage(table.MessageName)
 
 	fullFieldFlat := make([]fieldExcelCellDesc, 0)
-	fullFieldFlat = flatFieldName(fullFieldFlat, msgD, "", table)
+	fullFieldFlat = flatFieldName(fullFieldFlat, msgD, "", table, "")
 	nameList := lo.Map[fieldExcelCellDesc, string](fullFieldFlat, func(item fieldExcelCellDesc, index int) string {
 		return item.name
 	})
@@ -169,35 +171,47 @@ func createTableSheetOnExcel(excelFile *excelize.File, table configs.ResTableCon
 	styles.AdjustColumnWidth(excelFile, table.GetSheetName(), len(fullFieldFlat))
 }
 
-func flatFieldName(fullFieldFlat []fieldExcelCellDesc, msgD protoreflect.MessageDescriptor, prefix string, table configs.ResTableConfig) []fieldExcelCellDesc {
+func flatFieldName(fullFieldFlat []fieldExcelCellDesc, msgD protoreflect.MessageDescriptor, prefix string, table configs.ResTableConfig, parentComment string) []fieldExcelCellDesc {
 	for i := 0; i < msgD.Fields().Len(); i++ {
 		f := msgD.Fields().Get(i)
+		var comment = ""
+		if proto.HasExtension(f.Options(), resproto.E_ResComment) {
+			comment = proto.GetExtension(f.Options(), resproto.E_ResComment).(string)
+		}
+		if parentComment != "" {
+			if comment == "" {
+				comment = parentComment
+			} else {
+				comment = parentComment + " / " + comment
+			}
+		}
+		log.Println("aerwqer", f.Name(), comment)
 		if f.Kind() == protoreflect.MessageKind {
 			if f.IsMap() {
 				if f.MapValue().Kind() != protoreflect.MessageKind {
-					fullFieldFlat = append(fullFieldFlat, fieldExcelHead(prefix, string(f.Name()), f, table))
+					fullFieldFlat = append(fullFieldFlat, fieldExcelHead(prefix, string(f.Name()), f, table, comment))
 				} else {
 					keyField := protox.GetMsgKeyField(f.MapValue().Message())
 					if keyField == nil || f.MapKey().Kind() != (*keyField).Kind() {
-						fullFieldFlat = append(fullFieldFlat, fieldExcelHead(prefix, string(f.Name())+".key", f.MapKey(), table))
+						fullFieldFlat = append(fullFieldFlat, fieldExcelHead(prefix, string(f.Name())+".key", f.MapKey(), table, comment))
 					}
-					fullFieldFlat = flatOneMessage(fullFieldFlat, f, prefix, table)
+					fullFieldFlat = flatOneMessage(fullFieldFlat, f, prefix, table, comment)
 				}
 			} else {
-				fullFieldFlat = flatOneMessage(fullFieldFlat, f, prefix, table)
+				fullFieldFlat = flatOneMessage(fullFieldFlat, f, prefix, table, comment)
 			}
 		} else {
-			fullFieldFlat = append(fullFieldFlat, fieldExcelHead(prefix, string(f.Name()), f, table))
+			fullFieldFlat = append(fullFieldFlat, fieldExcelHead(prefix, string(f.Name()), f, table, comment))
 		}
 	}
 	return fullFieldFlat
 }
 
-func fieldExcelHead(prefix string, name string, fd protoreflect.FieldDescriptor, table configs.ResTableConfig) fieldExcelCellDesc {
+func fieldExcelHead(prefix string, name string, fd protoreflect.FieldDescriptor, table configs.ResTableConfig, parentComment string) fieldExcelCellDesc {
 	if fd.IsMap() {
 		colName := fmt.Sprintf("%s{key:value}", string(fd.Name()))
 		colComments := fmt.Sprintf("map{%s:%s}", fd.MapKey().Kind().String(), fd.MapValue().Kind().String())
-		comment := protox.GetFieldCommentOption(fd)
+		comment := parentComment
 		if comment != "" {
 			colComments = comment + "\n" + colComments
 		}
@@ -220,9 +234,8 @@ func fieldExcelHead(prefix string, name string, fd protoreflect.FieldDescriptor,
 	if fd.IsList() {
 		fs = "repeated " + fs
 	}
-	comment := protox.GetFieldCommentOption(fd)
-	if comment != "" {
-		fs = comment + "\n" + fs
+	if parentComment != "" {
+		fs = parentComment + " / " + fs
 	}
 	return fieldExcelCellDesc{
 		name:    ns,
@@ -230,11 +243,11 @@ func fieldExcelHead(prefix string, name string, fd protoreflect.FieldDescriptor,
 	}
 }
 
-func flatOneMessage(fullFieldFlat []fieldExcelCellDesc, f protoreflect.FieldDescriptor, prefix string, table configs.ResTableConfig) []fieldExcelCellDesc {
+func flatOneMessage(fullFieldFlat []fieldExcelCellDesc, f protoreflect.FieldDescriptor, prefix string, table configs.ResTableConfig, comment string) []fieldExcelCellDesc {
 	var fm = f.Message()
 	if f.IsMap() {
 		fm = f.MapValue().Message()
 	}
-	fullFieldFlat = flatFieldName(fullFieldFlat, fm, lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())), table)
+	fullFieldFlat = flatFieldName(fullFieldFlat, fm, lo.If(prefix == "", string(f.Name())).Else(prefix+"."+string(f.Name())), table, comment)
 	return fullFieldFlat
 }

@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 option go_package="github.com/yaoguangduan/reskeeper/resproto";
-import "descriptor.proto";
+import "google/protobuf/descriptor.proto";
 
 extend google.protobuf.FileOptions {
   optional string res_excel_path = 50100;
@@ -19,6 +19,11 @@ extend google.protobuf.MessageOptions {
 }
 extend google.protobuf.FieldOptions {
   optional string res_comment = 50120;
+  optional bool res_unique = 50121;
+  optional string res_range = 50122;
+  optional string res_pattern = 50123;
+  optional string res_default = 50124;
+  optional bool res_require = 50125;
 }
 extend google.protobuf.EnumValueOptions {
   optional string res_alias = 50130;

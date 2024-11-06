@@ -116,13 +116,15 @@ func ResolveCfgFromFiles(list []string, files protox.ProtoFiles) ResProtoFiles {
 			for i := 0; i < fd.Messages().Len(); i++ {
 				msg := fd.Messages().Get(i)
 				mo := msg.Options().(*descriptorpb.MessageOptions)
-				if proto.HasExtension(mo, resproto.E_ResSheetName) && proto.HasExtension(mo, resproto.E_ResGenerateName) {
+				if proto.HasExtension(mo, resproto.E_ResSheetName) {
 					resTable := ResTableConfig{Belong: resProtoFile}
 					resTable.TableName = string(msg.Name())
 					inner := msg.Fields().Get(0)
 					resTable.MessageName = string(inner.Message().Name())
 					resTable.SheetName = proto.GetExtension(mo, resproto.E_ResSheetName).(string)
-					resTable.GenerateName = proto.GetExtension(mo, resproto.E_ResGenerateName).(string)
+					if proto.HasExtension(mo, resproto.E_ResGenerateName) {
+						resTable.GenerateName = proto.GetExtension(mo, resproto.E_ResGenerateName).(string)
+					}
 					resProtoFile.Tables = append(resProtoFile.Tables, resTable)
 				}
 			}

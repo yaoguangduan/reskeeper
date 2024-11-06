@@ -120,5 +120,5 @@ func GetFieldEnumByAlias(field protoreflect.FieldDescriptor, cell string) protor
 			return ev.Number()
 		}
 	}
-	return 0
+	return -1
 }

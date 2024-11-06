@@ -1,10 +1,9 @@
 users: {
-  name: "alen"
-  age: 12
+  name: "kala"
   weight: 55.6
   location: 4656.23423
   isStudent: true
-  vipLevel: Level2
+  vipLevel: Level0
   lovers: "eat"
   lovers: "learn"
   pets: {
@@ -81,23 +80,13 @@ users: {
     }
   }
   other: "jump dance"
-  spouse: {
-    name: "kail"
-    age: 22
-    detail: {
-      weight: 43
-      intro: "good person"
-      work: "photo maker"
-    }
-  }
 }
 users: {
-  name: "kali"
-  age: 11
+  name: "alen"
   weight: 45.44
   location: 3242.211
   isStudent: false
-  vipLevel: Level1
+  vipLevel: Level0
   lovers: "drink"
   lovers: "play"
   lovers: "sleep"
@@ -133,14 +122,5 @@ users: {
   football: {
     addr: "WSKX"
     count: 8
-  }
-  spouse: {
-    name: "jker"
-    age: 21
-    detail: {
-      weight: 65
-      intro: "tired"
-      work: "footer"
-    }
   }
 }

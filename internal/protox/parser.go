@@ -1,7 +1,6 @@
 package protox
 
 import (
-	"embed"
 	"fmt"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/proto"
@@ -9,7 +8,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -17,9 +15,6 @@ import (
 	"time"
 	"unicode"
 )
-
-//go:embed \*
-var resProtoFile embed.FS
 
 type ProtoFiles struct {
 	RegFiles *protoregistry.Files
@@ -72,43 +67,18 @@ func readProtoDescSet(name string) ProtoFiles {
 }
 
 func protocGen(protoDirs []string) string {
-	file, err := resProtoFile.Open("resource_opt.proto")
-	if err != nil {
-		panic(err)
-	}
-	_, err = io.Copy(lo.Must(os.Create("resource_opt.proto")), file)
-	lo.Must0(file.Close())
-	if err != nil {
-		panic(err)
-	}
-	file, err = resProtoFile.Open("descriptor.proto")
-	if err != nil {
-		panic(err)
-	}
-	_, err = io.Copy(lo.Must(os.Create("descriptor.proto")), file)
-	lo.Must0(file.Close())
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		for os.Remove("descriptor.proto") != nil {
-
-		}
-		for os.Remove("resource_opt.proto") != nil {
-
-		}
-	}()
 	seconds := time.Now().Unix()
 	dsName := fmt.Sprintf("desc_set_%d.pb", seconds)
 	arg1List := lo.Map(protoDirs, func(item string, index int) string {
 		return fmt.Sprintf("--proto_path=%s", filepath.ToSlash(filepath.Clean(item)))
 	})
 	arg1List = append(arg1List, "--proto_path=.")
+	arg1List = append(arg1List, "--proto_path=./google/protobuf")
 	arg2List := lo.Map(protoDirs, func(item string, index int) string {
 		return filepath.ToSlash(filepath.Join(filepath.ToSlash(filepath.Clean(item)), "*.proto"))
 	})
-	arg2List = append(arg2List, "descriptor.proto")
 	arg2List = append(arg2List, "resource_opt.proto")
+	arg2List = append(arg2List, "./google/protobuf/descriptor.proto")
 	cmd := exec.Command("./protoc.exe", append([]string{"--descriptor_set_out=" + dsName}, append(arg1List, arg2List...)...)...)
 	fmt.Println(cmd.String())
 	out, err := cmd.CombinedOutput()

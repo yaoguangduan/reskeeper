@@ -53,13 +53,13 @@ message GamePlay {
 message User {
   option (res_tag_ignores) = "desc:3,5-7,9-999";
   option (res_msg_key) = 1;
-  optional string name = 1;
-  optional uint32 age = 2;
+  optional string name = 1[(res_unique)=true];
+  optional uint32 age = 2[(res_require)=true,(res_comment)="user's age, field is required"];
   optional float weight = 3 [(res_comment)="用户体重"];
   optional double location = 4;
   optional bool isStudent = 5;
-  optional VipLevel vipLevel = 6;
-  repeated string lovers = 7;
+  optional VipLevel vipLevel = 6[(res_default)="普通"];
+  repeated string lovers = 7[(res_range)="1-5",(res_unique)=true];
   repeated Pet pets = 8;
   map<string,Friend> friends = 9;
   map<string,float> recipes = 10;
@@ -73,13 +73,14 @@ message User {
 }
 message SpouseDetail {
   optional int32 weight = 1;
-  optional string intro = 2;
-  optional string work = 3;
+  optional string intro = 2[(res_range)="10-20"];
+  optional string work = 3[(res_comment)="工作类型"];
 }
 message Spouse {
-  optional string name = 1;
+  optional string name = 1[(res_pattern)=".*\\..*"];
   optional int32 age = 2;
-  optional SpouseDetail detail = 3;
+  optional string addr = 3[(res_comment)="住址"];
+  optional SpouseDetail detail = 4;
 }
 message UserTable {
   option (res_generate_name) = "user";

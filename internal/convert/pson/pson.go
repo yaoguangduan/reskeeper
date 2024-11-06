@@ -159,7 +159,7 @@ func toEnumNumber(field protoreflect.FieldDescriptor, cell string) protoreflect.
 			return ev.Number()
 		} else {
 			eu := protox.GetFieldEnumByAlias(field, cell)
-			if eu == 0 {
+			if eu == -1 {
 				panic(fmt.Sprintf("invalid enum value: %s", cell))
 			} else {
 				return eu

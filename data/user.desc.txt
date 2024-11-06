@@ -1,7 +1,7 @@
 users: {
-  name: "alen"
-  age: 12
+  name: "kala"
   location: 4656.23423
+  vipLevel: Level0
   pets: {
     type: "dog"
     age: 2
@@ -12,9 +12,9 @@ users: {
   }
 }
 users: {
-  name: "kali"
-  age: 11
+  name: "alen"
   location: 3242.211
+  vipLevel: Level0
   pets: {
     type: "dragon"
     age: 233

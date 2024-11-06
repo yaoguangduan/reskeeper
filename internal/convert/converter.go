@@ -7,6 +7,8 @@ import (
 	"github.com/yaoguangduan/reskeeper/internal/configs"
 	"github.com/yaoguangduan/reskeeper/internal/convert/pson"
 	"github.com/yaoguangduan/reskeeper/internal/protox"
+	"github.com/yaoguangduan/reskeeper/internal/validate"
+	"github.com/yaoguangduan/reskeeper/resproto"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -48,7 +50,7 @@ func GenerateAll(config configs.ResProtoFiles, files protox.ProtoFiles, list []s
 		go GenerateOneExcel(excel, table, &wait, files)
 	}
 	wait.Wait()
-	//validate.Validator.PrintValidateResult()
+	validate.Validator.PrintValidateResult()
 }
 
 func GenerateOneExcel(excel string, tables []configs.ResTableConfig, s *sync.WaitGroup, files protox.ProtoFiles) {
@@ -98,8 +100,8 @@ func convertOneTable(ctx configs.CvtContext) {
 		}
 		parseOneLineIntoMsg(tag, msg, idx, data)
 	}
-	//log.Printf("start to do resource validate %s#%s %s", table.GetExcelName(), table.GetSheetName(), tag)
-	//validate.Validator.Validate(tableMsg, ctx)
+	log.Printf("start to do resource validate %s#%s %s", table.GetExcelName(), table.GetSheetName(), tag)
+	validate.Validator.Validate(tableMsg, ctx)
 
 	var outPrefix = table.MessageName
 	if table.GenerateName != "" {
@@ -158,10 +160,19 @@ func parseOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, da
 	})
 	for _, colHead := range selfFields {
 		var value = line[colHead.Col]
+		field := desc.Fields().ByName(protoreflect.Name(colHead.Name))
 		if value == "" {
+			if proto.HasExtension(field.Options(), resproto.E_ResDefault) {
+				defVal := proto.GetExtension(field.Options(), resproto.E_ResDefault).(string)
+				val := GetFieldValueFromStr("", field, defVal, configs.ColHead{
+					Name:       string(field.Name()),
+					Col:        0,
+					NestFields: "",
+				})
+				msg.Set(field, val)
+			}
 			continue
 		}
-		field := desc.Fields().ByName(protoreflect.Name(colHead.Name))
 		if field == nil && desc.Oneofs().ByName(protoreflect.Name(colHead.Name)) != nil {
 			fn := value[0:strings.Index(value, "{")]
 			field = desc.Fields().ByName(protoreflect.Name(fn))
@@ -176,17 +187,17 @@ func parseOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, da
 		if field.IsList() {
 			list := msg.Mutable(field).List()
 			for _, val := range strings.Split(value, "|") {
-				list.Append(getFieldValueFromStr(tag, field, val, colHead))
+				list.Append(GetFieldValueFromStr(tag, field, val, colHead))
 			}
 		} else if field.IsMap() {
-			mapTmp := getFieldValueFromStr(tag, field, value, colHead).Map()
+			mapTmp := GetFieldValueFromStr(tag, field, value, colHead).Map()
 			mapCur := msg.Mutable(field).Map()
 			mapTmp.Range(func(key protoreflect.MapKey, value protoreflect.Value) bool {
 				mapCur.Set(key, value)
 				return true
 			})
 		} else {
-			msg.Set(field, getFieldValueFromStr(tag, field, value, colHead))
+			msg.Set(field, GetFieldValueFromStr(tag, field, value, colHead))
 		}
 	}
 	processNestedFields(tag, msg, lineIndex, data, desc)
@@ -235,7 +246,7 @@ func processNestedFields(tag string, msg protoreflect.Message, lineIndex int, da
 				if !exist {
 					mapField.Set(keyVal, field.Default())
 				} else {
-					valVal := getFieldValueFromStr(tag, mapValDesc, line[valHead.Col], valHead)
+					valVal := GetFieldValueFromStr(tag, mapValDesc, line[valHead.Col], valHead)
 					mapField.Set(keyVal, valVal)
 				}
 			}
@@ -291,7 +302,7 @@ func getMapKeyFromLine(tag string, ncm map[string]configs.ColHead, data configs.
 		panic(fmt.Sprintf("missing map key for line :%d,msg:%v", lineIndex, field.Name()))
 	}
 	delete(ncm, "key")
-	return protoreflect.MapKey(getFieldValueFromStr(tag, field.MapKey(), keyStr, headCol))
+	return protoreflect.MapKey(GetFieldValueFromStr(tag, field.MapKey(), keyStr, headCol))
 }
 
 // 获取从line开始倒数，col列的第一个非零string
@@ -304,7 +315,7 @@ func getPrevNoEmptyVal(lines [][]string, line int, col int) string {
 	return ""
 }
 
-func getFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell string, head configs.ColHead) protoreflect.Value {
+func GetFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell string, head configs.ColHead) protoreflect.Value {
 	if field.Kind() == protoreflect.MessageKind {
 		var value protoreflect.Value
 		var fmd = field.Message()
@@ -315,8 +326,8 @@ func getFieldValueFromStr(tag string, field protoreflect.FieldDescriptor, cell s
 		if field.IsMap() && field.MapValue().Kind() != protoreflect.MessageKind {
 			parentMsg := field.Parent().(protoreflect.MessageDescriptor)
 			mapField := dynamicpb.NewMessage(parentMsg).Mutable(field).Map()
-			key := protoreflect.MapKey(getFieldValueFromStr(tag, field.MapKey(), line[0], head))
-			val := getFieldValueFromStr(tag, field.MapValue(), line[1], head)
+			key := protoreflect.MapKey(GetFieldValueFromStr(tag, field.MapKey(), line[0], head))
+			val := GetFieldValueFromStr(tag, field.MapValue(), line[1], head)
 			mapField.Set(key, val)
 			return protoreflect.ValueOfMap(mapField)
 		}
