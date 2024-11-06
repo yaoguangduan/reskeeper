@@ -111,7 +111,8 @@ func convertOneTable(ctx configs.CvtContext) {
 		for _, format := range formats {
 			switch format {
 			case "bin":
-				marshal, err := proto.Marshal(tableMsg)
+				marshaller := proto.MarshalOptions{Deterministic: true}
+				marshal, err := marshaller.Marshal(tableMsg)
 				if err != nil {
 					panic(err)
 				}
