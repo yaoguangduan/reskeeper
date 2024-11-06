@@ -80,7 +80,16 @@
           "spendTime": "43"
         }
       },
-      "other": "jump dance"
+      "other": "jump dance",
+      "spouse": {
+        "name": "kail",
+        "age": 22,
+        "detail": {
+          "weight": 43,
+          "intro": "good person",
+          "work": "photo maker"
+        }
+      }
     },
     {
       "name": "kali",
@@ -130,6 +139,15 @@
       "football": {
         "addr": "WSKX",
         "count": 8
+      },
+      "spouse": {
+        "name": "jker",
+        "age": 21,
+        "detail": {
+          "weight": 65,
+          "intro": "tired",
+          "work": "footer"
+        }
       }
     }
   ]

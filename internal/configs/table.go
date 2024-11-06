@@ -1,7 +1,6 @@
 package configs
 
 import (
-	"fmt"
 	"github.com/samber/lo"
 	"github.com/yaoguangduan/reskeeper/internal/protox"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -39,7 +38,6 @@ func ParseToSheetTable(data [][]string) SheetData {
 		}
 	}
 	st.Lines = useful
-	fmt.Println(st.Lines)
 	return st
 }
 

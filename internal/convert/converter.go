@@ -174,7 +174,6 @@ func parseOneLineIntoMsg(tag string, msg protoreflect.Message, lineIndex int, da
 		}
 		if field.IsList() {
 			list := msg.Mutable(field).List()
-			log.Println("qiwqe", field.Name(), value)
 			for _, val := range strings.Split(value, "|") {
 				list.Append(getFieldValueFromStr(tag, field, val, colHead))
 			}

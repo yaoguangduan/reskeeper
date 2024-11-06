@@ -69,9 +69,26 @@ message User {
     GamePlay game = 13;
     string other = 14;
   }
+  optional Spouse spouse = 15[(res_comment)="配偶信息"];
+}
+message SpouseDetail {
+  optional int32 weight = 1;
+  optional string intro = 2;
+  optional string work = 3;
+}
+message Spouse {
+  optional string name = 1;
+  optional int32 age = 2;
+  optional SpouseDetail detail = 3;
 }
 message UserTable {
   option (res_generate_name) = "user";
   option (res_sheet_name) = "用户列表";
   repeated User users = 1;
+}
+
+message PetTable {
+  option (res_generate_name) = "pet";
+  option (res_sheet_name) = "宠物配置";
+  repeated Pet pets = 1;
 }
