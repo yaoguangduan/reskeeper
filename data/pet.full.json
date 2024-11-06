@@ -1,19 +1,19 @@
 {
-  "pets": [
+  "pets":  [
     {
-      "type": "dog",
-      "age": 1,
-      "cost": 32,
-      "foods": [
+      "type":  "dog",
+      "age":  1,
+      "cost":  32,
+      "foods":  [
         {
-          "type": "water",
-          "weight": 23
+          "type":  "water",
+          "weight":  23
         },
         {
-          "type": "carbon"
+          "type":  "carbon"
         },
         {
-          "type": "meat"
+          "type":  "meat"
         }
       ]
     }

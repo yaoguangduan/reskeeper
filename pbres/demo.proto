@@ -47,8 +47,9 @@ message Football {
   optional int32 count = 2;
 }
 message GamePlay {
-  optional string type = 1;
-  optional float cost = 2;
+  optional string id = 1;
+  optional string type = 2;
+  optional float cost = 3;
 }
 message User {
   option (res_tag_ignores) = "desc:3,5-7,9-999";

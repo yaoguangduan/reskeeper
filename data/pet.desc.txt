@@ -1,4 +1,4 @@
-pets: {
-  type: "dog"
-  age: 1
+pets:  {
+  type:  "dog"
+  age:  1
 }

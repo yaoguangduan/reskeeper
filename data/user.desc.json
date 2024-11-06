@@ -1,28 +1,28 @@
 {
-  "users": [
+  "users":  [
     {
-      "name": "kala",
-      "location": 4656.23423,
-      "vipLevel": "Level0",
-      "pets": [
+      "name":  "kala",
+      "location":  4656.23423,
+      "vipLevel":  "Level0",
+      "pets":  [
         {
-          "type": "dog",
-          "age": 2
+          "type":  "dog",
+          "age":  2
         },
         {
-          "type": "cat",
-          "age": 1
+          "type":  "cat",
+          "age":  1
         }
       ]
     },
     {
-      "name": "alen",
-      "location": 3242.211,
-      "vipLevel": "Level0",
-      "pets": [
+      "name":  "alen",
+      "location":  3242.211,
+      "vipLevel":  "Level0",
+      "pets":  [
         {
-          "type": "dragon",
-          "age": 233
+          "type":  "dragon",
+          "age":  233
         }
       ]
     }

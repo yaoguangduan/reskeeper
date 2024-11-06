@@ -185,7 +185,6 @@ func flatFieldName(fullFieldFlat []fieldExcelCellDesc, msgD protoreflect.Message
 				comment = parentComment + " / " + comment
 			}
 		}
-		log.Println("aerwqer", f.Name(), comment)
 		if f.Kind() == protoreflect.MessageKind {
 			if f.IsMap() {
 				if f.MapValue().Kind() != protoreflect.MessageKind {
