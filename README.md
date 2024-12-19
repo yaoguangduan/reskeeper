@@ -1,9 +1,15 @@
-##### reskeeper
-###### 1.parse .proto message to excel
-###### 2.convert excel to proto binary 、json 、 txt
+### reskeeper
+#### 1. general excel file from proto file
+#### 2. convert excel to proto binary 、json 、 txt
 
-#### usage:
-##### 1.define proto file
+### usage:
+
+#### requirement
+1. protoc.exe
+
+
+#### 1.define proto file
+- demo.proto
 ```protobuf
 
 import "resource_opt.proto"; // import the resource option proto
@@ -30,4 +36,56 @@ message PetTable {
   repeated Pet pets = 1;
 }
 ```
-##### 2.generate excel
+#### 2.generate excel
+run:
+```reskeeper.exe -P demos/```
+
+will see `../excel/测试样例.xlsx`
+
+the sheet:
+![sheet](docs/pet_excel_empty.png)
+
+try to edit like:
+![sheet_edit](docs/pet_edit.png)
+
+#### 3.convert excel to binary / json / txt
+
+run:
+```reskeeper.exe -P demos/ -C excel/测试样例.xlsx```
+
+convert result will write to `../data`
+
+- ../data/pet.full.json
+```json
+{
+  "pets": [
+    {
+      "type": "dog",
+      "age": 1,
+      "cost": 32,
+      "foods": [
+        {
+          "type": "water",
+          "weight": 23
+        }
+        ...
+      ]
+    }
+  ]
+}
+```
+- ../data/pet.desc.json
+**because of `option (res_tag_ignores) = "desc:3-999";` ,desc only convert 'type' and 'age' field**
+```json
+{
+  "pets": [
+    {
+      "type": "dog",
+      "age": 1
+    }
+  ]
+}
+```
+
+
+**reskeeper also support comment 、 validate ,see internal demo.proto for more usage**

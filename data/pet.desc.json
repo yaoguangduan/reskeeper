@@ -1,8 +1,8 @@
 {
-  "pets":  [
+  "pets": [
     {
-      "type":  "dog",
-      "age":  1
+      "type": "dog",
+      "age": 1
     }
   ]
 }

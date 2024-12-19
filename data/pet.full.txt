@@ -1,15 +1,17 @@
-pets:  {
-  type:  "dog"
-  age:  1
-  cost:  32
-  foods:  {
-    type:  "water"
-    weight:  23
+pets: {
+  type: "dog"
+  age: 1
+  cost: 32
+  foods: {
+    type: "water"
+    weight: 23
   }
-  foods:  {
-    type:  "carbon"
+  foods: {
+    type: "carbon"
+    weight: 12
   }
-  foods:  {
-    type:  "meat"
+  foods: {
+    type: "meat"
+    weight: 34
   }
 }
