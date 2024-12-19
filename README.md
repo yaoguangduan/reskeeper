@@ -75,6 +75,7 @@ convert result will write to `../data`
 }
 ```
 - ../data/pet.desc.json
+
 **because of `option (res_tag_ignores) = "desc:3-999";` ,desc only convert 'type' and 'age' field**
 ```json
 {
