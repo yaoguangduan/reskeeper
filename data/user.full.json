@@ -6,10 +6,6 @@
       "location":  4656.23423,
       "isStudent":  true,
       "vipLevel":  "Level0",
-      "lovers":  [
-        "eat",
-        "learn"
-      ],
       "pets":  [
         {
           "type":  "dog",
